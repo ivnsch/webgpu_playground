@@ -1,8 +1,10 @@
-import { Renderer } from "./renderer";
+import { WebGpu } from "./web_gpu";
 
 export class App {
   canvas: HTMLCanvasElement;
-  renderer: Renderer;
+  navigator: Navigator;
+
+  renderer: WebGpu;
 
   keyLabel: HTMLElement;
   mouseXLabel: HTMLElement;
@@ -11,24 +13,21 @@ export class App {
   setMouseXLabel: (value: string) => void;
   setMouseYLabel: (value: string) => void;
 
-  constructor(canvas: HTMLCanvasElement, document: Document) {
+  constructor(canvas: HTMLCanvasElement, navigator: Navigator) {
     this.canvas = canvas;
+    this.navigator = navigator;
 
-    this.renderer = new Renderer(canvas);
+    this.renderer = new WebGpu();
   }
 
-  async Initialize() {
-    await this.renderer.Initialize();
+  async init() {
+    await this.renderer.init(this.canvas, this.navigator);
   }
 
   run = () => {
-    var running: boolean = true;
-
     this.renderer.render();
 
-    if (running) {
-      requestAnimationFrame(this.run);
-    }
+    requestAnimationFrame(this.run);
   };
 
   handle_keypress(event: any) {
