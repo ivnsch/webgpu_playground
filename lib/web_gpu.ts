@@ -67,22 +67,31 @@ export class WebGpu {
 
   render = () => {
     if (!this.initialized) {
-      //   console.log("not initialized yet");
+      console.log("Error: not initialized");
       return;
     }
+    // TODO does this really have to be inialized in render?
     this.initRenderPassDescriptor();
 
-    const encoder = this.device.createCommandEncoder({ label: "our encoder" });
-
-    const pass = encoder.beginRenderPass(this.renderPassDescriptor);
-    pass.setPipeline(this.pipeline);
-    pass.draw(3); // call our vertex shader 3 times
-    pass.end();
-
-    const commandBuffer = encoder.finish();
-    this.device.queue.submit([commandBuffer]);
+    render(this.device, this.renderPassDescriptor, this.pipeline);
   };
 }
+
+const render = (
+  device: GPUDevice,
+  renderPassDescriptor: GPURenderPassDescriptor,
+  pipeline: GPURenderPipeline
+) => {
+  const encoder = device.createCommandEncoder({ label: "our encoder" });
+
+  const pass = encoder.beginRenderPass(renderPassDescriptor);
+  pass.setPipeline(pipeline);
+  pass.draw(3); // call our vertex shader 3 times
+  pass.end();
+
+  const commandBuffer = encoder.finish();
+  device.queue.submit([commandBuffer]);
+};
 
 const createPipeline = (
   shader: string,
