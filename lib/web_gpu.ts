@@ -6,54 +6,46 @@ export class WebGpu {
   device: GPUDevice | null;
   context: GPUCanvasContext;
 
-  initialized: boolean = false;
-
   presentationFormat: GPUTextureFormat;
   pipeline: GPURenderPipeline | null;
 
   renderPassDescriptor: GPURenderPassDescriptor | null;
 
-  mesh: Mesh;
-  meshBuffer: GPUBuffer;
-  meshBindGroup: GPUBindGroup;
+  mesh: Mesh | null;
+  meshBuffer: GPUBuffer | null;
+  meshBindGroup: GPUBindGroup | null;
 
-  constructor() {
+  constructor(canvas: HTMLCanvasElement) {
     this.adapter = null;
     this.device = null;
     this.renderPassDescriptor = null;
     this.pipeline = null;
+    this.mesh = null;
+    this.meshBuffer = null;
+    this.meshBindGroup = null;
 
     this.presentationFormat = "bgra8unorm";
+    this.context = <GPUCanvasContext>canvas.getContext("webgpu");
   }
 
-  init = async (canvas: HTMLCanvasElement, navigator: Navigator) => {
+  init = async (navigator: Navigator) => {
     const adapter = <GPUAdapter>await navigator.gpu?.requestAdapter();
     if (adapter) {
       const device = <GPUDevice>await adapter.requestDevice();
-      const context = <GPUCanvasContext>canvas.getContext("webgpu");
-      if (context) {
-        this.initInternal(adapter, device, context);
-      } else {
-        console.log("error: no context");
-      }
+      this.initInternal(adapter, device);
     } else {
       console.log("error: no adapter");
     }
   };
 
-  private initInternal = async (
-    adapter: GPUAdapter,
-    device: GPUDevice,
-    context: GPUCanvasContext
-  ) => {
-    context.configure({
+  private initInternal = async (adapter: GPUAdapter, device: GPUDevice) => {
+    this.adapter = adapter;
+    this.device = device;
+
+    this.context.configure({
       device: device,
       format: this.presentationFormat,
     });
-
-    this.adapter = adapter;
-    this.device = device;
-    this.context = context;
 
     this.mesh = new Mesh(this.device);
     this.meshBuffer = await createMeshBuffer(this.device);
@@ -65,8 +57,6 @@ export class WebGpu {
       this.presentationFormat,
       this.mesh
     );
-
-    this.initialized = true;
   };
 
   private createCurrentTextureView = (): GPUTextureView => {
@@ -81,12 +71,20 @@ export class WebGpu {
   };
 
   render = () => {
-    if (!this.initialized) {
-      console.log("Error: not initialized");
-      return;
-    }
     // TODO does this really have to be inialized in render?
     this.initRenderPassDescriptor();
+
+    if (
+      !(
+        this.device &&
+        this.renderPassDescriptor &&
+        this.pipeline &&
+        this.mesh &&
+        this.meshBindGroup
+      )
+    ) {
+      return;
+    }
 
     render(
       this.device,
