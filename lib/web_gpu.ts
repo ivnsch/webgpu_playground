@@ -1,3 +1,4 @@
+import { Matrix3x3 } from "./matrix_3x3";
 import { Mesh } from "./mesh";
 import my_shader from "./shaders/screen_shader.wgsl";
 
@@ -12,17 +13,23 @@ export class WebGpu {
   renderPassDescriptor: GPURenderPassDescriptor | null;
 
   mesh: Mesh | null;
-  meshBuffer: GPUBuffer | null;
-  meshBindGroup: GPUBindGroup | null;
+
+  bindGroup: GPUBindGroup | null;
+
+  rotYBuffer: GPUBuffer | null;
+  rotYMatrix: Matrix3x3;
 
   constructor(canvas: HTMLCanvasElement) {
     this.adapter = null;
     this.device = null;
     this.renderPassDescriptor = null;
     this.pipeline = null;
+    this.rotYBuffer = null;
     this.mesh = null;
-    this.meshBuffer = null;
-    this.meshBindGroup = null;
+    this.bindGroup = null;
+
+    this.rotYMatrix = Matrix3x3.rotY(0);
+    console.log(this.rotYMatrix);
 
     this.presentationFormat = "bgra8unorm";
     this.context = <GPUCanvasContext>canvas.getContext("webgpu");
@@ -47,15 +54,25 @@ export class WebGpu {
       format: this.presentationFormat,
     });
 
-    this.mesh = new Mesh(this.device);
-    this.meshBuffer = await createMeshBuffer(this.device);
-    this.meshBindGroup = createMeshBindGroup(this.device, this.meshBuffer);
+    this.rotYBuffer = this.device.createBuffer({
+      size: 64 * 2,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
 
+    this.mesh = new Mesh(this.device);
+
+    const bindGroupResult = createBindGroup(
+      this.device,
+      this.mesh.buffer,
+      this.rotYBuffer
+    );
+    this.bindGroup = bindGroupResult.bindGroup;
     this.pipeline = createPipeline(
       my_shader,
       device,
       this.presentationFormat,
-      this.mesh
+      this.mesh,
+      bindGroupResult.bindGroupLayout
     );
   };
 
@@ -80,7 +97,8 @@ export class WebGpu {
         this.renderPassDescriptor &&
         this.pipeline &&
         this.mesh &&
-        this.meshBindGroup
+        this.bindGroup &&
+        this.rotYBuffer
       )
     ) {
       return;
@@ -91,7 +109,9 @@ export class WebGpu {
       this.renderPassDescriptor,
       this.pipeline,
       this.mesh,
-      this.meshBindGroup
+      this.bindGroup,
+      this.rotYBuffer,
+      this.rotYMatrix
     );
   };
 }
@@ -102,7 +122,11 @@ const render = (
   pipeline: GPURenderPipeline,
   // it should be possible to make this more generic, for now like this
   mesh: Mesh,
-  meshBindGroup: GPUBindGroup
+
+  bindGroup: GPUBindGroup,
+
+  rotYBuffer: GPUBuffer,
+  rotYMatrix: Matrix3x3
 ) => {
   const encoder = device.createCommandEncoder({ label: "our encoder" });
 
@@ -110,24 +134,78 @@ const render = (
   pass.setPipeline(pipeline);
 
   pass.setVertexBuffer(0, mesh.buffer);
-  pass.setBindGroup(0, meshBindGroup);
+  pass.setBindGroup(0, bindGroup);
 
   pass.draw(3); // call our vertex shader 3 times
   pass.end();
 
   const commandBuffer = encoder.finish();
   device.queue.submit([commandBuffer]);
+
+  device.queue.writeBuffer(rotYBuffer, 0, <ArrayBuffer>rotYMatrix.toGlMatrix());
+
+  console.log("!! " + rotYMatrix.toGlMatrix());
+};
+
+const createRenderPassDescriptor = (view: GPUTextureView): any => {
+  return {
+    label: "our basic canvas renderPass",
+    colorAttachments: [
+      {
+        view: view,
+        clearValue: [0.3, 0.3, 0.3, 1],
+        loadOp: "clear",
+        storeOp: "store",
+      },
+    ],
+  };
+};
+
+const createBindGroup = (
+  device: GPUDevice,
+  meshBuffer: GPUBuffer,
+  rotYBuffer: GPUBuffer
+): BindGroupCreationResult => {
+  const bindGroupLayout = device.createBindGroupLayout({
+    label: "my bind group layout",
+    entries: [
+      {
+        binding: 0,
+        visibility: GPUShaderStage.VERTEX,
+        buffer: {},
+      },
+    ],
+  });
+  const bindGroup = device.createBindGroup({
+    label: "my bind group",
+    layout: bindGroupLayout,
+    entries: [
+      {
+        binding: 0,
+        resource: {
+          buffer: rotYBuffer,
+        },
+      },
+    ],
+  });
+
+  return new BindGroupCreationResult(bindGroupLayout, bindGroup);
 };
 
 const createPipeline = (
   shader: string,
   device: GPUDevice,
   presentationFormat: GPUTextureFormat,
-  mesh: Mesh
+  mesh: Mesh,
+  bindGroupLayout: GPUBindGroupLayout
 ): GPURenderPipeline => {
+  const layout = device.createPipelineLayout({
+    bindGroupLayouts: [bindGroupLayout],
+  });
+
   return device.createRenderPipeline({
-    label: "foo",
-    layout: "auto",
+    label: "my pipeline",
+    layout: layout,
     vertex: {
       module: device.createShaderModule({
         code: shader,
@@ -152,53 +230,12 @@ const createPipeline = (
   });
 };
 
-const createRenderPassDescriptor = (view: GPUTextureView): any => {
-  return {
-    label: "our basic canvas renderPass",
-    colorAttachments: [
-      {
-        view: view,
-        clearValue: [0.3, 0.3, 0.3, 1],
-        loadOp: "clear",
-        storeOp: "store",
-      },
-    ],
-  };
-};
+class BindGroupCreationResult {
+  bindGroupLayout: GPUBindGroupLayout;
+  bindGroup: GPUBindGroup;
 
-const createMeshBuffer = async (device: GPUDevice): Promise<GPUBuffer> => {
-  const modelBufferDescriptor: GPUBufferDescriptor = {
-    size: 64 * 1024,
-    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-  };
-  return device.createBuffer(modelBufferDescriptor);
-};
-
-const createMeshBindGroup = (
-  device: GPUDevice,
-  meshBuffer: GPUBuffer
-): GPUBindGroup => {
-  const bindGroupLayout = device.createBindGroupLayout({
-    entries: [
-      {
-        binding: 0,
-        visibility: GPUShaderStage.VERTEX,
-        buffer: {
-          type: "read-only-storage",
-          hasDynamicOffset: false,
-        },
-      },
-    ],
-  });
-  return device.createBindGroup({
-    layout: bindGroupLayout,
-    entries: [
-      {
-        binding: 0,
-        resource: {
-          buffer: meshBuffer,
-        },
-      },
-    ],
-  });
-};
+  constructor(bindGroupLayout: GPUBindGroupLayout, bindGroup: GPUBindGroup) {
+    this.bindGroupLayout = bindGroupLayout;
+    this.bindGroup = bindGroup;
+  }
+}

@@ -23,6 +23,7 @@ const createBuffer = (device: GPUDevice, vertices: Float32Array): GPUBuffer => {
     GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST;
 
   const descriptor: GPUBufferDescriptor = {
+    label: "my mesh buffer",
     size: vertices.byteLength,
     usage: usage,
     mappedAtCreation: true,
