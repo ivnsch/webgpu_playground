@@ -5,10 +5,9 @@ export class Mesh {
   constructor(device: GPUDevice) {
     // x y z
     // prettier-ignore
+    const z = -2;
     const vertices: Float32Array = new Float32Array([
-      0.0, 0.5, 0.0, 
-      -0.5, -0.5, 0.0, 
-      0.5, -0.5, 0.0,
+      0.0, 0.5, -2, -0.5, -0.5, -2, 0.5, -0.5, -2,
     ]);
 
     this.buffer = createBuffer(device, vertices);

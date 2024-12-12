@@ -4,12 +4,13 @@ struct OurVertexShaderOutput {
 };
 
 @binding(0) @group(0) var<uniform> rotationY: mat4x4<f32>;
+@binding(1) @group(0) var<uniform> projection: mat4x4<f32>;
 
 @vertex
 fn vs_main(@builtin(vertex_index) vertexIndex: u32, @location(0) vertex: vec3<f32>) -> OurVertexShaderOutput {
     let vertex_4 = vec4<f32>(vertex, 1.0);
 
-    let transformed = rotationY * vertex_4;
+    let transformed = projection * rotationY * vertex_4;
 
     var output: OurVertexShaderOutput;
     output.position = transformed;
