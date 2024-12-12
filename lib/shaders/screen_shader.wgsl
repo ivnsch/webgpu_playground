@@ -4,9 +4,9 @@ struct OurVertexShaderOutput {
 };
 
 @vertex
-fn vs_main(@builtin(vertex_index) vertexIndex: u32, @location(0) vertexPostion: vec3<f32>) -> OurVertexShaderOutput {
+fn vs_main(@builtin(vertex_index) vertexIndex: u32, @location(0) vertex: vec3<f32>) -> OurVertexShaderOutput {
     var output: OurVertexShaderOutput;
-    output.position = vec4<f32>(vertexPostion, 1.0);
+    output.position = vec4<f32>(vertex, 1.0);
     output.color = vec3<f32>(1.0, 0.0, 0.0);
     return output;
 }
