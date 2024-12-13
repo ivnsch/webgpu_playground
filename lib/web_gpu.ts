@@ -1,7 +1,8 @@
-import { mat4 } from "gl-matrix";
+import { mat4, vec3 } from "gl-matrix";
 import { Matrix3x3 } from "./matrix_3x3";
 import { Mesh } from "./mesh";
 import my_shader from "./shaders/screen_shader.wgsl";
+import { Camera } from "./camera";
 
 export class WebGpu {
   adapter: GPUAdapter | null;
@@ -23,6 +24,9 @@ export class WebGpu {
   projectionBuffer: GPUBuffer | null;
   projection: mat4;
 
+  cameraBuffer: GPUBuffer | null;
+  camera: Camera;
+
   constructor(canvas: HTMLCanvasElement) {
     this.adapter = null;
     this.device = null;
@@ -32,6 +36,7 @@ export class WebGpu {
     this.mesh = null;
     this.bindGroup = null;
     this.projectionBuffer = null;
+    this.cameraBuffer = null;
 
     this.rotYMatrix = Matrix3x3.rotY(0);
     console.log(this.rotYMatrix);
@@ -40,6 +45,7 @@ export class WebGpu {
     this.context = <GPUCanvasContext>canvas.getContext("webgpu");
 
     this.projection = createProjectionMatrix();
+    this.camera = new Camera(origin());
   }
 
   init = async (navigator: Navigator) => {
@@ -69,6 +75,10 @@ export class WebGpu {
       size: 64 * 2,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
+    this.cameraBuffer = this.device.createBuffer({
+      size: 64 * 2,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
 
     this.mesh = new Mesh(this.device);
 
@@ -76,7 +86,8 @@ export class WebGpu {
       this.device,
       this.mesh.buffer,
       this.rotYBuffer,
-      this.projectionBuffer
+      this.projectionBuffer,
+      this.cameraBuffer
     );
     this.bindGroup = bindGroupResult.bindGroup;
     this.pipeline = createPipeline(
@@ -111,7 +122,8 @@ export class WebGpu {
         this.mesh &&
         this.bindGroup &&
         this.rotYBuffer &&
-        this.projectionBuffer
+        this.projectionBuffer &&
+        this.cameraBuffer
       )
     ) {
       return;
@@ -126,7 +138,9 @@ export class WebGpu {
       this.rotYBuffer,
       this.rotYMatrix,
       this.projectionBuffer,
-      this.projection
+      this.projection,
+      this.cameraBuffer,
+      this.camera
     );
   };
 }
@@ -143,7 +157,9 @@ const render = (
   rotYBuffer: GPUBuffer,
   rotYMatrix: Matrix3x3,
   projectionBuffer: GPUBuffer,
-  projection: mat4
+  projection: mat4,
+  cameraBuffer: GPUBuffer,
+  camera: Camera
 ) => {
   const encoder = device.createCommandEncoder({ label: "our encoder" });
 
@@ -161,8 +177,7 @@ const render = (
 
   device.queue.writeBuffer(rotYBuffer, 0, <ArrayBuffer>rotYMatrix.toGlMatrix());
   device.queue.writeBuffer(projectionBuffer, 0, <ArrayBuffer>projection);
-
-  console.log("!! " + rotYMatrix.toGlMatrix());
+  device.queue.writeBuffer(cameraBuffer, 0, <ArrayBuffer>camera.matrix());
 };
 
 const createRenderPassDescriptor = (view: GPUTextureView): any => {
@@ -183,7 +198,8 @@ const createBindGroup = (
   device: GPUDevice,
   meshBuffer: GPUBuffer,
   rotYBuffer: GPUBuffer,
-  projection: GPUBuffer
+  projectionBuffer: GPUBuffer,
+  cameraBuffer: GPUBuffer
 ): BindGroupCreationResult => {
   const bindGroupLayout = device.createBindGroupLayout({
     label: "my bind group layout",
@@ -195,6 +211,11 @@ const createBindGroup = (
       },
       {
         binding: 1,
+        visibility: GPUShaderStage.VERTEX,
+        buffer: {},
+      },
+      {
+        binding: 2,
         visibility: GPUShaderStage.VERTEX,
         buffer: {},
       },
@@ -213,7 +234,13 @@ const createBindGroup = (
       {
         binding: 1,
         resource: {
-          buffer: projection,
+          buffer: projectionBuffer,
+        },
+      },
+      {
+        binding: 2,
+        resource: {
+          buffer: cameraBuffer,
         },
       },
     ],
@@ -280,5 +307,11 @@ const createProjectionMatrix = () => {
 const createIdentityMatrix = () => {
   const m = mat4.create();
   mat4.identity(m);
+  return m;
+};
+
+const origin = () => {
+  const m = vec3.create();
+  vec3.zero(m);
   return m;
 };
