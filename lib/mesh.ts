@@ -3,11 +3,13 @@ export class Mesh {
   bufferLayout: GPUVertexBufferLayout;
 
   constructor(device: GPUDevice) {
+    const z = -2;
     // x y z
     // prettier-ignore
-    const z = -2;
     const vertices: Float32Array = new Float32Array([
-      0.0, 0.5, -2, -0.5, -0.5, -2, 0.5, -0.5, -2,
+      0.0, 0.5, z, 
+      -0.5, -0.5, z, 
+      0.5, -0.5, z,
     ]);
 
     this.buffer = createBuffer(device, vertices);
