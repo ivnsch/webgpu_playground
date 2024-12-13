@@ -10,10 +10,22 @@ export class Matrix3x3 {
     this.values = values;
   }
 
+  static rotX(angle: number): Matrix3x3 {
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    return new Matrix3x3([1, 0, 0, 0, cos, -sin, 0, sin, cos]);
+  }
+
   static rotY(angle: number): Matrix3x3 {
     const cos = Math.cos(angle);
     const sin = Math.sin(angle);
     return new Matrix3x3([cos, 0, sin, 0, 1, 0, -sin, 0, cos]);
+  }
+
+  static rotZ(angle: number): Matrix3x3 {
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    return new Matrix3x3([cos, -sin, 0, sin, cos, 0, 0, 0, 1]);
   }
 
   toGlMatrix = (): mat4 => {

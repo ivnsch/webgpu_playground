@@ -9,7 +9,7 @@ export default function Home() {
   useEffect(() => {
     const nested = async () => {
       if (canvasRef.current) {
-        const app = new App(canvasRef.current);
+        const app = new App(document, canvasRef.current);
         await app.init(navigator);
         app.run();
       }

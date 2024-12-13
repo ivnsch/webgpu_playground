@@ -3,12 +3,39 @@ import { WebGpu } from "./web_gpu";
 export class App {
   renderer: WebGpu;
 
-  constructor(canvas: HTMLCanvasElement) {
+  rotX: number = 0;
+  rotY: number = 0;
+  rotZ: number = 0;
+
+  constructor(document: Document, canvas: HTMLCanvasElement) {
     this.renderer = new WebGpu(canvas);
+
+    document.addEventListener("keydown", (e) => {
+      this.handleKeypress(e);
+    });
   }
 
   async init(navigator: Navigator) {
     await this.renderer.init(navigator);
+  }
+
+  handleKeypress(event: any) {
+    console.log("handling key press: " + event);
+
+    const delta = 0.02;
+    if (event.code == "KeyX") {
+      this.rotX += delta;
+    }
+    if (event.code == "KeyY") {
+      this.rotY += delta;
+    }
+    if (event.code == "KeyZ") {
+      this.rotZ += delta;
+    }
+
+    this.renderer.setRotX(this.rotX);
+    this.renderer.setRotY(this.rotY);
+    this.renderer.setRotZ(this.rotZ);
   }
 
   run = () => {

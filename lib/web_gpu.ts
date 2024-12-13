@@ -20,6 +20,10 @@ export class WebGpu {
 
   rotYBuffer: GPUBuffer | null;
   rotYMatrix: Matrix3x3;
+  rotXBuffer: GPUBuffer | null = null;
+  rotXMatrix: Matrix3x3 = Matrix3x3.rotZ(0);
+  rotZBuffer: GPUBuffer | null = null;
+  rotZMatrix: Matrix3x3 = Matrix3x3.rotZ(0);
 
   projectionBuffer: GPUBuffer | null;
   projection: mat4;
@@ -38,7 +42,7 @@ export class WebGpu {
     this.projectionBuffer = null;
     this.cameraBuffer = null;
 
-    this.rotYMatrix = Matrix3x3.rotY(0);
+    this.rotYMatrix = Matrix3x3.rotZ(0);
     console.log(this.rotYMatrix);
 
     this.presentationFormat = "bgra8unorm";
@@ -67,7 +71,15 @@ export class WebGpu {
       format: this.presentationFormat,
     });
 
+    this.rotXBuffer = this.device.createBuffer({
+      size: 64 * 2,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
     this.rotYBuffer = this.device.createBuffer({
+      size: 64 * 2,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
+    this.rotZBuffer = this.device.createBuffer({
       size: 64 * 2,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
@@ -85,6 +97,8 @@ export class WebGpu {
     const bindGroupResult = createBindGroup(
       this.device,
       this.mesh.buffer,
+      this.rotXBuffer,
+      this.rotZBuffer,
       this.rotYBuffer,
       this.projectionBuffer,
       this.cameraBuffer
@@ -121,7 +135,9 @@ export class WebGpu {
         this.pipeline &&
         this.mesh &&
         this.bindGroup &&
+        this.rotXBuffer &&
         this.rotYBuffer &&
+        this.rotZBuffer &&
         this.projectionBuffer &&
         this.cameraBuffer
       )
@@ -135,13 +151,29 @@ export class WebGpu {
       this.pipeline,
       this.mesh,
       this.bindGroup,
+      this.rotXBuffer,
+      this.rotXMatrix,
       this.rotYBuffer,
       this.rotYMatrix,
+      this.rotZBuffer,
+      this.rotZMatrix,
       this.projectionBuffer,
       this.projection,
       this.cameraBuffer,
       this.camera
     );
+  };
+
+  setRotX = (angle: number) => {
+    this.rotXMatrix = Matrix3x3.rotX(angle);
+  };
+
+  setRotY = (angle: number) => {
+    this.rotYMatrix = Matrix3x3.rotY(angle);
+  };
+
+  setRotZ = (angle: number) => {
+    this.rotZMatrix = Matrix3x3.rotZ(angle);
   };
 }
 
@@ -154,8 +186,12 @@ const render = (
 
   bindGroup: GPUBindGroup,
 
+  rotXBuffer: GPUBuffer,
+  rotXMatrix: Matrix3x3,
   rotYBuffer: GPUBuffer,
   rotYMatrix: Matrix3x3,
+  rotZBuffer: GPUBuffer,
+  rotZMatrix: Matrix3x3,
   projectionBuffer: GPUBuffer,
   projection: mat4,
   cameraBuffer: GPUBuffer,
@@ -175,7 +211,9 @@ const render = (
   const commandBuffer = encoder.finish();
   device.queue.submit([commandBuffer]);
 
+  device.queue.writeBuffer(rotXBuffer, 0, <ArrayBuffer>rotXMatrix.toGlMatrix());
   device.queue.writeBuffer(rotYBuffer, 0, <ArrayBuffer>rotYMatrix.toGlMatrix());
+  device.queue.writeBuffer(rotZBuffer, 0, <ArrayBuffer>rotZMatrix.toGlMatrix());
   device.queue.writeBuffer(projectionBuffer, 0, <ArrayBuffer>projection);
   device.queue.writeBuffer(cameraBuffer, 0, <ArrayBuffer>camera.matrix());
 };
@@ -197,7 +235,9 @@ const createRenderPassDescriptor = (view: GPUTextureView): any => {
 const createBindGroup = (
   device: GPUDevice,
   meshBuffer: GPUBuffer,
+  rotXBuffer: GPUBuffer,
   rotYBuffer: GPUBuffer,
+  rotZBuffer: GPUBuffer,
   projectionBuffer: GPUBuffer,
   cameraBuffer: GPUBuffer
 ): BindGroupCreationResult => {
@@ -219,6 +259,16 @@ const createBindGroup = (
         visibility: GPUShaderStage.VERTEX,
         buffer: {},
       },
+      {
+        binding: 3,
+        visibility: GPUShaderStage.VERTEX,
+        buffer: {},
+      },
+      {
+        binding: 4,
+        visibility: GPUShaderStage.VERTEX,
+        buffer: {},
+      },
     ],
   });
   const bindGroup = device.createBindGroup({
@@ -228,19 +278,31 @@ const createBindGroup = (
       {
         binding: 0,
         resource: {
-          buffer: rotYBuffer,
+          buffer: projectionBuffer,
         },
       },
       {
         binding: 1,
         resource: {
-          buffer: projectionBuffer,
+          buffer: cameraBuffer,
         },
       },
       {
         binding: 2,
         resource: {
-          buffer: cameraBuffer,
+          buffer: rotXBuffer,
+        },
+      },
+      {
+        binding: 3,
+        resource: {
+          buffer: rotYBuffer,
+        },
+      },
+      {
+        binding: 4,
+        resource: {
+          buffer: rotZBuffer,
         },
       },
     ],
