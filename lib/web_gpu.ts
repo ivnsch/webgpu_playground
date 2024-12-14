@@ -19,7 +19,7 @@ export class WebGpu {
   bindGroup: GPUBindGroup | null;
 
   rotBuffer: GPUBuffer | null;
-  rotMatrix: mat4 | null = null;
+  rotMatrix: mat4 | null = createIdentityMatrix();
 
   projectionBuffer: GPUBuffer | null;
   projection: mat4;
