@@ -3,9 +3,9 @@ import { WebGpu } from "./web_gpu";
 export class App {
   renderer: WebGpu;
 
-  rotX: number = 0;
-  rotY: number = 0;
-  rotZ: number = 0;
+  objPitch: number = 0;
+  objYaw: number = 0;
+  objRoll: number = 0;
 
   cameraPitch: number = 0;
   cameraYaw: number = 0;
@@ -27,13 +27,13 @@ export class App {
     const deltaObj = 0.05;
     const deltaCamera = 1;
     if (event.code == "KeyX") {
-      this.rotX += deltaObj;
+      this.objPitch += deltaObj;
     }
     if (event.code == "KeyY") {
-      this.rotY += deltaObj;
+      this.objYaw += deltaObj;
     }
     if (event.code == "KeyZ") {
-      this.rotZ += deltaObj;
+      this.objRoll += deltaObj;
     }
     if (event.code == "KeyI") {
       this.cameraPitch += deltaCamera;
@@ -45,7 +45,7 @@ export class App {
       this.cameraRoll += deltaCamera;
     }
 
-    this.renderer.setRot(this.rotX, this.rotY, this.rotZ);
+    this.renderer.setObjEulers(this.objPitch, this.objYaw, this.objRoll);
     this.renderer.setCameraEulers(
       this.cameraPitch,
       this.cameraYaw,

@@ -36,7 +36,7 @@ export class Matrix3x3 {
   };
 }
 
-export const rotX = (angle: number): mat4 => {
+export const setObjPitch = (angle: number): mat4 => {
   const cos = Math.cos(angle);
   const sin = Math.sin(angle);
   // prettier-ignore
@@ -48,7 +48,7 @@ export const rotX = (angle: number): mat4 => {
       );
 };
 
-export const rotY = (angle: number): mat4 => {
+export const setObjYaw = (angle: number): mat4 => {
   const cos = Math.cos(angle);
   const sin = Math.sin(angle);
   // prettier-ignore
@@ -60,7 +60,7 @@ export const rotY = (angle: number): mat4 => {
       );
 };
 
-export const rotZ = (angle: number): mat4 => {
+export const setObjRoll = (angle: number): mat4 => {
   const cos = Math.cos(angle);
   const sin = Math.sin(angle);
   // prettier-ignore

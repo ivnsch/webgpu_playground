@@ -1,5 +1,5 @@
 import { mat4, vec3 } from "gl-matrix";
-import { rotX, rotY, rotZ, trans } from "./matrix_3x3";
+import { setObjPitch, setObjYaw, setObjRoll, trans } from "./matrix_3x3";
 import { Mesh } from "./mesh";
 import my_shader from "./shaders/screen_shader.wgsl";
 import { Camera } from "./camera";
@@ -19,7 +19,7 @@ export class WebGpu {
   bindGroup: GPUBindGroup | null = null;
 
   rotBuffer: GPUBuffer | null = null;
-  rotMatrix: mat4 | null = createIdentityMatrix();
+  eulersMatrix: mat4 | null = createIdentityMatrix();
 
   projectionBuffer: GPUBuffer | null = null;
   projection: mat4;
@@ -28,7 +28,7 @@ export class WebGpu {
   camera: Camera;
 
   constructor(canvas: HTMLCanvasElement) {
-    console.log(this.rotMatrix);
+    console.log(this.eulersMatrix);
 
     this.presentationFormat = "bgra8unorm";
     this.context = <GPUCanvasContext>canvas.getContext("webgpu");
@@ -111,7 +111,7 @@ export class WebGpu {
         this.mesh &&
         this.bindGroup &&
         this.rotBuffer &&
-        this.rotMatrix &&
+        this.eulersMatrix &&
         this.projectionBuffer &&
         this.cameraBuffer
       )
@@ -126,7 +126,7 @@ export class WebGpu {
       this.mesh,
       this.bindGroup,
       this.rotBuffer,
-      this.rotMatrix,
+      this.eulersMatrix,
       this.projectionBuffer,
       this.projection,
       this.cameraBuffer,
@@ -134,7 +134,7 @@ export class WebGpu {
     );
   };
 
-  setRot = (x: number, y: number, z: number) => {
+  setObjEulers = (pitch: number, yaw: number, roll: number) => {
     if (!this.mesh) return;
 
     // translate to origin
@@ -142,9 +142,9 @@ export class WebGpu {
     const transMatrix = trans(transVec);
 
     // rotate
-    const xMatrix = rotX(x);
-    const yMatrix = rotY(y);
-    const zMatrix = rotZ(z);
+    const pitchMatrix = setObjPitch(pitch);
+    const yawMatrix = setObjYaw(yaw);
+    const rollMatrix = setObjRoll(roll);
 
     // translate back to original position
     const negatedTransVec = vec3.create();
@@ -154,9 +154,9 @@ export class WebGpu {
     const rotations = mat4.create();
 
     // note inverse order
-    mat4.multiply(rotations, yMatrix, transBackMatrix);
-    mat4.multiply(rotations, xMatrix, rotations);
-    mat4.multiply(rotations, zMatrix, rotations);
+    mat4.multiply(rotations, yawMatrix, transBackMatrix);
+    mat4.multiply(rotations, pitchMatrix, rotations);
+    mat4.multiply(rotations, rollMatrix, rotations);
     mat4.multiply(rotations, transMatrix, rotations);
 
     // // debug - apply the transform to some point (and compare with manual calculation)
@@ -171,7 +171,7 @@ export class WebGpu {
     // gl-matrix and webgpu are both supposed to use column-major?
     // added it because noticed transposing fixes rotation (not rotating around center)
     // this.rotMatrix = rotations;
-    this.rotMatrix = transposed;
+    this.eulersMatrix = transposed;
   };
 
   setCameraEulers = (pitch: number, yaw: number, roll: number) => {
