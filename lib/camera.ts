@@ -13,6 +13,8 @@ export class Camera {
   yaw: number = 0;
   roll: number = 0;
 
+//   translation: vec3 = vec3.create();
+
   constructor(position: vec3) {
     this.position = position;
 
@@ -38,6 +40,9 @@ export class Camera {
     // the point where the camera looks at
     var target: vec3 = vec3.create();
     vec3.add(target, this.position, this.forwards);
+
+    // translation
+    // vec3.add(this.position, this.translation, this.position);
 
     this.view = mat4.create();
     mat4.lookAt(this.view, this.position, target, this.up);

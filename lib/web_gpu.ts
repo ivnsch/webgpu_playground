@@ -179,6 +179,10 @@ export class WebGpu {
     this.camera.yaw = yaw;
     this.camera.roll = roll;
   };
+
+  setCameraTranslation = (translation: vec3) => {
+    this.camera.position = translation;
+  };
 }
 
 const render = (
