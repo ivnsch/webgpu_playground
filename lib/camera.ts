@@ -7,32 +7,40 @@ export class Camera {
   right: vec3;
   up: vec3;
 
-  view: mat4 | null;
+  view: mat4 | null = null;
 
-  rotX: number;
-  rotY: number;
-  rotZ: number;
+  pitch: number = 0;
+  yaw: number = 0;
+  roll: number = 0;
 
   constructor(position: vec3) {
     this.position = position;
+
     this.forwards = vec3.create();
     this.right = vec3.create();
     this.up = vec3.create();
-
-    this.view = null;
-
-    this.rotX = 0;
-    this.rotY = 0;
-    this.rotZ = 0;
   }
 
   update = () => {
-    this.forwards = [0, 0, -1];
-    this.right = [1, 0, 0];
-    this.up = [0, 1, 0];
+    // euler -> cartesian, https://stackoverflow.com/a/1568687
+    this.forwards = [
+      -Math.sin(degToRad(this.yaw)) * Math.cos(degToRad(this.pitch)),
+      Math.sin(degToRad(this.pitch)),
+      -Math.cos(degToRad(this.yaw)) * Math.cos(degToRad(this.pitch)),
+    ];
+
+    // not sure I understand this, first cross with [0, 1, 0] and then calculate up based on this? but it works..
+    vec3.cross(this.right, this.forwards, [0, 1, 0]);
+
+    // up orthogonal to right and forwards
+    vec3.cross(this.up, this.right, this.forwards);
+
+    // the point where the camera looks at
+    var target: vec3 = vec3.create();
+    vec3.add(target, this.position, this.forwards);
 
     this.view = mat4.create();
-    mat4.lookAt(this.view, this.position, this.forwards, this.up);
+    mat4.lookAt(this.view, this.position, target, this.up);
   };
 
   matrix = (): mat4 => {
@@ -45,3 +53,7 @@ const createMatrix = (position: vec3, target: vec3, up: vec3) => {
   mat4.lookAt(m, position, target, up);
   return m;
 };
+
+export function degToRad(angle: number): number {
+  return (angle * Math.PI) / 180;
+}

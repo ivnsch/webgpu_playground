@@ -7,6 +7,10 @@ export class App {
   rotY: number = 0;
   rotZ: number = 0;
 
+  cameraPitch: number = 0;
+  cameraYaw: number = 0;
+  cameraRoll: number = 0;
+
   constructor(document: Document, canvas: HTMLCanvasElement) {
     this.renderer = new WebGpu(canvas);
 
@@ -20,20 +24,33 @@ export class App {
   }
 
   handleKeypress(event: any) {
-    console.log("handling key press: " + event);
-
-    const delta = 0.05;
+    const deltaObj = 0.05;
+    const deltaCamera = 1;
     if (event.code == "KeyX") {
-      this.rotX += delta;
+      this.rotX += deltaObj;
     }
     if (event.code == "KeyY") {
-      this.rotY += delta;
+      this.rotY += deltaObj;
     }
     if (event.code == "KeyZ") {
-      this.rotZ += delta;
+      this.rotZ += deltaObj;
+    }
+    if (event.code == "KeyI") {
+      this.cameraPitch += deltaCamera;
+    }
+    if (event.code == "KeyO") {
+      this.cameraYaw += deltaCamera;
+    }
+    if (event.code == "KeyP") {
+      this.cameraRoll += deltaCamera;
     }
 
     this.renderer.setRot(this.rotX, this.rotY, this.rotZ);
+    this.renderer.setCameraEulers(
+      this.cameraPitch,
+      this.cameraYaw,
+      this.cameraRoll
+    );
   }
 
   run = () => {

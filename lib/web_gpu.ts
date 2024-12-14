@@ -173,6 +173,12 @@ export class WebGpu {
     // this.rotMatrix = rotations;
     this.rotMatrix = transposed;
   };
+
+  setCameraEulers = (pitch: number, yaw: number, roll: number) => {
+    this.camera.pitch = pitch;
+    this.camera.yaw = yaw;
+    this.camera.roll = roll;
+  };
 }
 
 const render = (
@@ -192,6 +198,8 @@ const render = (
   cameraBuffer: GPUBuffer,
   camera: Camera
 ) => {
+  camera.update();
+
   const encoder = device.createCommandEncoder({ label: "our encoder" });
 
   const pass = encoder.beginRenderPass(renderPassDescriptor);

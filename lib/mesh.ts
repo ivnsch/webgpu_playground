@@ -8,7 +8,6 @@ export class Mesh {
   private vertices: Float32Array = Mesh.initVertices();
 
   constructor(device: GPUDevice) {
-    console.log("!! this vertices" + this.vertices);
     this.buffer = createBuffer(device, this.vertices);
     setVerticesInBuffer(this.buffer, this.vertices);
 
@@ -25,7 +24,6 @@ export class Mesh {
 
   translationToOrigin = (): vec3 => {
     const c = this.center();
-    console.log("!! center: %o", c);
     const v = vec3.create();
     vec3.scale(v, c, -1);
     return v;
