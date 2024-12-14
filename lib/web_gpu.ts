@@ -5,39 +5,29 @@ import my_shader from "./shaders/screen_shader.wgsl";
 import { Camera } from "./camera";
 
 export class WebGpu {
-  adapter: GPUAdapter | null;
-  device: GPUDevice | null;
+  adapter: GPUAdapter | null = null;
+  device: GPUDevice | null = null;
   context: GPUCanvasContext;
 
   presentationFormat: GPUTextureFormat;
-  pipeline: GPURenderPipeline | null;
+  pipeline: GPURenderPipeline | null = null;
 
-  renderPassDescriptor: GPURenderPassDescriptor | null;
+  renderPassDescriptor: GPURenderPassDescriptor | null = null;
 
-  mesh: Mesh | null;
+  mesh: Mesh | null = null;
 
-  bindGroup: GPUBindGroup | null;
+  bindGroup: GPUBindGroup | null = null;
 
-  rotBuffer: GPUBuffer | null;
+  rotBuffer: GPUBuffer | null = null;
   rotMatrix: mat4 | null = createIdentityMatrix();
 
-  projectionBuffer: GPUBuffer | null;
+  projectionBuffer: GPUBuffer | null = null;
   projection: mat4;
 
-  cameraBuffer: GPUBuffer | null;
+  cameraBuffer: GPUBuffer | null = null;
   camera: Camera;
 
   constructor(canvas: HTMLCanvasElement) {
-    this.adapter = null;
-    this.device = null;
-    this.renderPassDescriptor = null;
-    this.pipeline = null;
-    this.rotBuffer = null;
-    this.mesh = null;
-    this.bindGroup = null;
-    this.projectionBuffer = null;
-    this.cameraBuffer = null;
-
     console.log(this.rotMatrix);
 
     this.presentationFormat = "bgra8unorm";
