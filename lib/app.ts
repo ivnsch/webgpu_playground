@@ -22,7 +22,7 @@ export class App {
   handleKeypress(event: any) {
     console.log("handling key press: " + event);
 
-    const delta = 0.02;
+    const delta = 0.05;
     if (event.code == "KeyX") {
       this.rotX += delta;
     }
@@ -33,9 +33,7 @@ export class App {
       this.rotZ += delta;
     }
 
-    this.renderer.setRotX(this.rotX);
-    this.renderer.setRotY(this.rotY);
-    this.renderer.setRotZ(this.rotZ);
+    this.renderer.setRot(this.rotX, this.rotY, this.rotZ);
   }
 
   run = () => {

@@ -1,5 +1,5 @@
 import { mat4, vec3 } from "gl-matrix";
-import { Matrix3x3 } from "./matrix_3x3";
+import { rotX, rotY, rotZ, trans } from "./matrix_3x3";
 import { Mesh } from "./mesh";
 import my_shader from "./shaders/screen_shader.wgsl";
 import { Camera } from "./camera";
@@ -18,12 +18,8 @@ export class WebGpu {
 
   bindGroup: GPUBindGroup | null;
 
-  rotYBuffer: GPUBuffer | null;
-  rotYMatrix: Matrix3x3;
-  rotXBuffer: GPUBuffer | null = null;
-  rotXMatrix: Matrix3x3 = Matrix3x3.rotZ(0);
-  rotZBuffer: GPUBuffer | null = null;
-  rotZMatrix: Matrix3x3 = Matrix3x3.rotZ(0);
+  rotBuffer: GPUBuffer | null;
+  rotMatrix: mat4 | null = null;
 
   projectionBuffer: GPUBuffer | null;
   projection: mat4;
@@ -36,14 +32,13 @@ export class WebGpu {
     this.device = null;
     this.renderPassDescriptor = null;
     this.pipeline = null;
-    this.rotYBuffer = null;
+    this.rotBuffer = null;
     this.mesh = null;
     this.bindGroup = null;
     this.projectionBuffer = null;
     this.cameraBuffer = null;
 
-    this.rotYMatrix = Matrix3x3.rotZ(0);
-    console.log(this.rotYMatrix);
+    console.log(this.rotMatrix);
 
     this.presentationFormat = "bgra8unorm";
     this.context = <GPUCanvasContext>canvas.getContext("webgpu");
@@ -71,15 +66,7 @@ export class WebGpu {
       format: this.presentationFormat,
     });
 
-    this.rotXBuffer = this.device.createBuffer({
-      size: 64 * 2,
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-    });
-    this.rotYBuffer = this.device.createBuffer({
-      size: 64 * 2,
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-    });
-    this.rotZBuffer = this.device.createBuffer({
+    this.rotBuffer = this.device.createBuffer({
       size: 64 * 2,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
@@ -97,9 +84,7 @@ export class WebGpu {
     const bindGroupResult = createBindGroup(
       this.device,
       this.mesh.buffer,
-      this.rotXBuffer,
-      this.rotZBuffer,
-      this.rotYBuffer,
+      this.rotBuffer,
       this.projectionBuffer,
       this.cameraBuffer
     );
@@ -135,9 +120,8 @@ export class WebGpu {
         this.pipeline &&
         this.mesh &&
         this.bindGroup &&
-        this.rotXBuffer &&
-        this.rotYBuffer &&
-        this.rotZBuffer &&
+        this.rotBuffer &&
+        this.rotMatrix &&
         this.projectionBuffer &&
         this.cameraBuffer
       )
@@ -151,12 +135,8 @@ export class WebGpu {
       this.pipeline,
       this.mesh,
       this.bindGroup,
-      this.rotXBuffer,
-      this.rotXMatrix,
-      this.rotYBuffer,
-      this.rotYMatrix,
-      this.rotZBuffer,
-      this.rotZMatrix,
+      this.rotBuffer,
+      this.rotMatrix,
       this.projectionBuffer,
       this.projection,
       this.cameraBuffer,
@@ -164,16 +144,44 @@ export class WebGpu {
     );
   };
 
-  setRotX = (angle: number) => {
-    this.rotXMatrix = Matrix3x3.rotX(angle);
-  };
+  setRot = (x: number, y: number, z: number) => {
+    if (!this.mesh) return;
 
-  setRotY = (angle: number) => {
-    this.rotYMatrix = Matrix3x3.rotY(angle);
-  };
+    // translate to origin
+    const transVec = this.mesh.translationToOrigin();
+    const transMatrix = trans(transVec);
 
-  setRotZ = (angle: number) => {
-    this.rotZMatrix = Matrix3x3.rotZ(angle);
+    // rotate
+    const xMatrix = rotX(x);
+    const yMatrix = rotY(y);
+    const zMatrix = rotZ(z);
+
+    // translate back to original position
+    const negatedTransVec = vec3.create();
+    vec3.negate(negatedTransVec, transVec);
+    const transBackMatrix = trans(negatedTransVec);
+
+    const rotations = mat4.create();
+
+    // note inverse order
+    mat4.multiply(rotations, yMatrix, transBackMatrix);
+    mat4.multiply(rotations, xMatrix, rotations);
+    mat4.multiply(rotations, zMatrix, rotations);
+    mat4.multiply(rotations, transMatrix, rotations);
+
+    // // debug - apply the transform to some point (and compare with manual calculation)
+    // const testPoint = vec4.fromValues(0, 0, -2, 1);
+    // const transformed = vec4.create();
+    // vec4.transformMat4(transformed, testPoint, rotations);
+
+    const transposed = mat4.create();
+    mat4.transpose(transposed, rotations);
+
+    // not sure why it's needed to transpose,
+    // gl-matrix and webgpu are both supposed to use column-major?
+    // added it because noticed transposing fixes rotation (not rotating around center)
+    // this.rotMatrix = rotations;
+    this.rotMatrix = transposed;
   };
 }
 
@@ -186,12 +194,9 @@ const render = (
 
   bindGroup: GPUBindGroup,
 
-  rotXBuffer: GPUBuffer,
-  rotXMatrix: Matrix3x3,
-  rotYBuffer: GPUBuffer,
-  rotYMatrix: Matrix3x3,
-  rotZBuffer: GPUBuffer,
-  rotZMatrix: Matrix3x3,
+  rotBuffer: GPUBuffer,
+  rotMatrix: mat4,
+
   projectionBuffer: GPUBuffer,
   projection: mat4,
   cameraBuffer: GPUBuffer,
@@ -211,9 +216,7 @@ const render = (
   const commandBuffer = encoder.finish();
   device.queue.submit([commandBuffer]);
 
-  device.queue.writeBuffer(rotXBuffer, 0, <ArrayBuffer>rotXMatrix.toGlMatrix());
-  device.queue.writeBuffer(rotYBuffer, 0, <ArrayBuffer>rotYMatrix.toGlMatrix());
-  device.queue.writeBuffer(rotZBuffer, 0, <ArrayBuffer>rotZMatrix.toGlMatrix());
+  device.queue.writeBuffer(rotBuffer, 0, <ArrayBuffer>rotMatrix);
   device.queue.writeBuffer(projectionBuffer, 0, <ArrayBuffer>projection);
   device.queue.writeBuffer(cameraBuffer, 0, <ArrayBuffer>camera.matrix());
 };
@@ -235,9 +238,7 @@ const createRenderPassDescriptor = (view: GPUTextureView): any => {
 const createBindGroup = (
   device: GPUDevice,
   meshBuffer: GPUBuffer,
-  rotXBuffer: GPUBuffer,
-  rotYBuffer: GPUBuffer,
-  rotZBuffer: GPUBuffer,
+  rotBuffer: GPUBuffer,
   projectionBuffer: GPUBuffer,
   cameraBuffer: GPUBuffer
 ): BindGroupCreationResult => {
@@ -256,16 +257,6 @@ const createBindGroup = (
       },
       {
         binding: 2,
-        visibility: GPUShaderStage.VERTEX,
-        buffer: {},
-      },
-      {
-        binding: 3,
-        visibility: GPUShaderStage.VERTEX,
-        buffer: {},
-      },
-      {
-        binding: 4,
         visibility: GPUShaderStage.VERTEX,
         buffer: {},
       },
@@ -290,19 +281,7 @@ const createBindGroup = (
       {
         binding: 2,
         resource: {
-          buffer: rotXBuffer,
-        },
-      },
-      {
-        binding: 3,
-        resource: {
-          buffer: rotYBuffer,
-        },
-      },
-      {
-        binding: 4,
-        resource: {
-          buffer: rotZBuffer,
+          buffer: rotBuffer,
         },
       },
     ],

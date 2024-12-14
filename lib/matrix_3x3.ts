@@ -1,4 +1,4 @@
-import { mat4 } from "gl-matrix";
+import { mat4, vec3 } from "gl-matrix";
 
 export class Matrix3x3 {
   private values: number[];
@@ -8,24 +8,6 @@ export class Matrix3x3 {
       throw new Error("Matrix must have 9 elements.");
     }
     this.values = values;
-  }
-
-  static rotX(angle: number): Matrix3x3 {
-    const cos = Math.cos(angle);
-    const sin = Math.sin(angle);
-    return new Matrix3x3([1, 0, 0, 0, cos, -sin, 0, sin, cos]);
-  }
-
-  static rotY(angle: number): Matrix3x3 {
-    const cos = Math.cos(angle);
-    const sin = Math.sin(angle);
-    return new Matrix3x3([cos, 0, sin, 0, 1, 0, -sin, 0, cos]);
-  }
-
-  static rotZ(angle: number): Matrix3x3 {
-    const cos = Math.cos(angle);
-    const sin = Math.sin(angle);
-    return new Matrix3x3([cos, -sin, 0, sin, cos, 0, 0, 0, 1]);
   }
 
   toGlMatrix = (): mat4 => {
@@ -53,3 +35,59 @@ export class Matrix3x3 {
     return gl;
   };
 }
+
+export const rotX = (angle: number): mat4 => {
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  // prettier-ignore
+  return mat4.fromValues(
+          1, 0, 0, 0,
+          0, cos, -sin, 0,
+          0, sin, cos, 0,
+          0, 0, 0, 1
+      );
+};
+
+export const rotY = (angle: number): mat4 => {
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  // prettier-ignore
+  return mat4.fromValues(
+          cos, 0, sin, 0,
+          0, 1, 0, 0,
+          -sin, 0, cos, 0,
+          0, 0, 0, 1
+      );
+};
+
+export const rotZ = (angle: number): mat4 => {
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  // prettier-ignore
+  return mat4.fromValues(
+              cos, -sin, 0, 0,
+              sin, cos, 0, 0,
+              0, 0, 1, 0,
+              0, 0, 0, 1
+          );
+};
+
+export const trans = (vec: vec3): mat4 => {
+  // prettier-ignore
+  return mat4.fromValues(
+          1, 0, 0, vec[0],
+          0, 1, 0, vec[1],
+          0, 0, 1, vec[2],
+          0, 0 ,0 ,1 
+      );
+};
+
+export const prettyPrintMat4 = (m: mat4) => {
+  // prettier-ignore
+  console.log(`
+  [ ${m[0].toFixed(2)}, ${m[1].toFixed(2)}, ${m[2].toFixed(2)}, ${m[3].toFixed(2)} ]
+  [ ${m[4].toFixed(2)}, ${m[5].toFixed(2)}, ${m[6].toFixed(2)}, ${m[7].toFixed(2)} ]
+  [ ${m[8].toFixed(2)}, ${m[9].toFixed(2)}, ${m[10].toFixed(2)}, ${m[11].toFixed(2)} ]
+  [ ${m[12].toFixed(2)}, ${m[13].toFixed(2)}, ${m[14].toFixed(2)}, ${m[15].toFixed(2)} ]
+    `);
+};
