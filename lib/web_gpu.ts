@@ -3,7 +3,8 @@ import { setObjPitch, setObjYaw, setObjRoll, trans } from "./matrix_3x3";
 import { TriangleMesh } from "./triangle_mesh";
 import my_shader from "./shaders/screen_shader.wgsl";
 import { Camera } from "./camera";
-import { AxisMesh } from "./axis_mesh";
+import { Mesh } from "./mesh";
+import { xAxisVertices } from "./axis_mesh";
 
 export class WebGpu {
   adapter: GPUAdapter | null = null;
@@ -15,7 +16,7 @@ export class WebGpu {
 
   renderPassDescriptor: GPURenderPassDescriptor | null = null;
 
-  axisMesh: AxisMesh | null = null;
+  axisMesh: Mesh | null = null;
   mesh: TriangleMesh | null = null;
 
   bindGroup: GPUBindGroup | null = null;
@@ -90,7 +91,7 @@ export class WebGpu {
     this.meshTypeBufferTriangle.unmap();
 
     this.mesh = new TriangleMesh(this.device);
-    this.axisMesh = new AxisMesh(this.device);
+    this.axisMesh = new Mesh(this.device, xAxisVertices());
 
     const bindGroupResult = createBindGroup(
       this.device,
@@ -229,7 +230,7 @@ const render = (
   renderPassDescriptor: GPURenderPassDescriptor,
   pipeline: GPURenderPipeline,
   // it should be possible to make this more generic, for now like this
-  axisMesh: AxisMesh,
+  axisMesh: Mesh,
   mesh: TriangleMesh,
 
   bindGroup: GPUBindGroup,
