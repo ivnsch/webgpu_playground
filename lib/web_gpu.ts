@@ -1,6 +1,6 @@
 import { mat4, vec3 } from "gl-matrix";
 import { setObjPitch, setObjYaw, setObjRoll, trans } from "./matrix_3x3";
-import { Mesh } from "./mesh";
+import { TriangleMesh } from "./triangle_mesh";
 import my_shader from "./shaders/screen_shader.wgsl";
 import { Camera } from "./camera";
 
@@ -14,7 +14,7 @@ export class WebGpu {
 
   renderPassDescriptor: GPURenderPassDescriptor | null = null;
 
-  mesh: Mesh | null = null;
+  mesh: TriangleMesh | null = null;
 
   bindGroup: GPUBindGroup | null = null;
 
@@ -69,7 +69,7 @@ export class WebGpu {
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
-    this.mesh = new Mesh(this.device);
+    this.mesh = new TriangleMesh(this.device);
 
     const bindGroupResult = createBindGroup(
       this.device,
@@ -190,7 +190,7 @@ const render = (
   renderPassDescriptor: GPURenderPassDescriptor,
   pipeline: GPURenderPipeline,
   // it should be possible to make this more generic, for now like this
-  mesh: Mesh,
+  mesh: TriangleMesh,
 
   bindGroup: GPUBindGroup,
 
@@ -296,7 +296,7 @@ const createPipeline = (
   shader: string,
   device: GPUDevice,
   presentationFormat: GPUTextureFormat,
-  mesh: Mesh,
+  mesh: TriangleMesh,
   bindGroupLayout: GPUBindGroupLayout
 ): GPURenderPipeline => {
   const layout = device.createPipelineLayout({

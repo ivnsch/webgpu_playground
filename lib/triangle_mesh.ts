@@ -1,11 +1,11 @@
 import { vec3 } from "gl-matrix";
 
-export class Mesh {
+export class TriangleMesh {
   buffer: GPUBuffer;
   bufferLayout: GPUVertexBufferLayout;
 
   private static z = -2;
-  private vertices: Float32Array = Mesh.initVertices();
+  private vertices: Float32Array = TriangleMesh.initVertices();
 
   constructor(device: GPUDevice) {
     this.buffer = createBuffer(device, this.vertices);
@@ -18,7 +18,7 @@ export class Mesh {
     return vec3.fromValues(
       (this.vertices[0] + this.vertices[3] + this.vertices[6]) / 3,
       (this.vertices[1] + this.vertices[4] + this.vertices[7]) / 3,
-      Mesh.z
+      TriangleMesh.z
     );
   };
 
