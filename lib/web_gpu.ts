@@ -57,15 +57,15 @@ export class WebGpu {
     });
 
     this.rotBuffer = this.device.createBuffer({
-      size: 64 * 2,
+      size: 64,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
     this.projectionBuffer = this.device.createBuffer({
-      size: 64 * 2,
+      size: 64,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
     this.cameraBuffer = this.device.createBuffer({
-      size: 64 * 2,
+      size: 64,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
