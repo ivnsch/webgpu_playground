@@ -4,7 +4,7 @@ import { TriangleMesh } from "./triangle_mesh";
 import my_shader from "./shaders/screen_shader.wgsl";
 import { Camera } from "./camera";
 import { Mesh } from "./mesh";
-import { xAxisVertices, yAxisVertices } from "./axis_mesh";
+import { xAxisVertices, yAxisVertices, zAxisVertices } from "./axis_mesh";
 
 export class WebGpu {
   adapter: GPUAdapter | null = null;
@@ -19,6 +19,7 @@ export class WebGpu {
   triangleMesh: TriangleMesh | null = null;
   xAxisMesh: Mesh | null = null;
   yAxisMesh: Mesh | null = null;
+  zAxisMesh: Mesh | null = null;
 
   triangleBindGroup: GPUBindGroup | null = null;
   xAxisBindGroup: GPUBindGroup | null = null;
@@ -94,6 +95,7 @@ export class WebGpu {
     this.triangleMesh = new TriangleMesh(this.device);
     this.xAxisMesh = new Mesh("x axis mesh", this.device, xAxisVertices());
     this.yAxisMesh = new Mesh("y axis mesh", this.device, yAxisVertices());
+    this.zAxisMesh = new Mesh("z axis mesh", this.device, zAxisVertices());
 
     const bindGroupLayout = createBindGroupLayout(this.device);
 
@@ -148,6 +150,7 @@ export class WebGpu {
         this.pipeline &&
         this.xAxisMesh &&
         this.yAxisMesh &&
+        this.zAxisMesh &&
         this.triangleMesh &&
         this.triangleBindGroup &&
         this.xAxisBindGroup &&
@@ -166,6 +169,7 @@ export class WebGpu {
       this.pipeline,
       this.xAxisMesh,
       this.yAxisMesh,
+      this.zAxisMesh,
       this.triangleMesh,
       this.triangleBindGroup,
       this.xAxisBindGroup,
@@ -236,6 +240,7 @@ const render = (
   // it should be possible to make this more generic, for now like this
   xAxisMesh: Mesh,
   yAxisMesh: Mesh,
+  zAxisMesh: Mesh,
   triangleMesh: TriangleMesh,
 
   triangleBindGroup: GPUBindGroup,
@@ -266,6 +271,8 @@ const render = (
   pass.setVertexBuffer(0, xAxisMesh.buffer);
   pass.draw(6, 1);
   pass.setVertexBuffer(0, yAxisMesh.buffer);
+  pass.draw(6, 1);
+  pass.setVertexBuffer(0, zAxisMesh.buffer);
   pass.draw(6, 1);
 
   pass.end();

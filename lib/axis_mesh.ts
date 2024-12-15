@@ -29,3 +29,17 @@ export const yAxisVertices = () => {
         hw, -len, 0, 
     ])
 };
+
+export const zAxisVertices = () => {
+  // x y z
+  // prettier-ignore
+  return new Float32Array([
+        0, hw, len, 
+        0, hw, -len, 
+        0, -hw, -len, 
+
+        0, -hw, -len, 
+        0, hw, len, 
+        0, -hw, len, 
+    ])
+};
