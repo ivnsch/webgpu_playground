@@ -1,5 +1,5 @@
 import { vec3 } from "gl-matrix";
-import { WebGpu } from "./web_gpu";
+import { WebGpu, origin } from "./web_gpu";
 
 export class App {
   renderer: WebGpu;
@@ -11,10 +11,13 @@ export class App {
   cameraPitch: number = 0;
   cameraYaw: number = 0;
   cameraRoll: number = 0;
-  cameraTranslation: vec3 = vec3.create();
+  cameraPos: vec3 = vec3.create();
 
   constructor(document: Document, canvas: HTMLCanvasElement) {
-    this.renderer = new WebGpu(canvas);
+    this.cameraPos = origin();
+    this.cameraPos[2] += 4;
+
+    this.renderer = new WebGpu(canvas, this.cameraPos);
 
     document.addEventListener("keydown", (e) => {
       this.handleKeypress(e);
@@ -48,22 +51,22 @@ export class App {
       this.cameraRoll += deltaCameraRot;
     }
     if (event.code == "KeyQ") {
-      this.cameraTranslation[1] -= deltaCameraTrans;
+      this.cameraPos[1] -= deltaCameraTrans;
     }
     if (event.code == "KeyE") {
-      this.cameraTranslation[1] += deltaCameraTrans;
+      this.cameraPos[1] += deltaCameraTrans;
     }
     if (event.code == "KeyA") {
-      this.cameraTranslation[0] -= deltaCameraTrans;
+      this.cameraPos[0] -= deltaCameraTrans;
     }
     if (event.code == "KeyD") {
-      this.cameraTranslation[0] += deltaCameraTrans;
+      this.cameraPos[0] += deltaCameraTrans;
     }
     if (event.code == "KeyW") {
-      this.cameraTranslation[2] -= deltaCameraTrans;
+      this.cameraPos[2] -= deltaCameraTrans;
     }
     if (event.code == "KeyS") {
-      this.cameraTranslation[2] += deltaCameraTrans;
+      this.cameraPos[2] += deltaCameraTrans;
     }
 
     this.renderer.setObjEulers(this.objPitch, this.objYaw, this.objRoll);
@@ -72,7 +75,7 @@ export class App {
       this.cameraYaw,
       this.cameraRoll
     );
-    this.renderer.setCameraTranslation(this.cameraTranslation);
+    this.renderer.setCameraTranslation(this.cameraPos);
   }
 
   run = () => {

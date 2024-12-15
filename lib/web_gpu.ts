@@ -27,14 +27,14 @@ export class WebGpu {
   cameraBuffer: GPUBuffer | null = null;
   camera: Camera;
 
-  constructor(canvas: HTMLCanvasElement) {
+  constructor(canvas: HTMLCanvasElement, cameraPos: vec3) {
     console.log(this.eulersMatrix);
 
     this.presentationFormat = "bgra8unorm";
     this.context = <GPUCanvasContext>canvas.getContext("webgpu");
 
     this.projection = createProjectionMatrix();
-    this.camera = new Camera(origin());
+    this.camera = new Camera(cameraPos);
   }
 
   init = async (navigator: Navigator) => {
@@ -353,7 +353,7 @@ const createIdentityMatrix = () => {
   return m;
 };
 
-const origin = () => {
+export const origin = () => {
   const m = vec3.create();
   vec3.zero(m);
   return m;
