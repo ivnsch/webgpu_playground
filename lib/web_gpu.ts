@@ -288,26 +288,10 @@ const createBindGroupLayout = (device: GPUDevice): GPUBindGroupLayout => {
   return device.createBindGroupLayout({
     label: "my bind group layout",
     entries: [
-      {
-        binding: 0,
-        visibility: GPUShaderStage.VERTEX,
-        buffer: {},
-      },
-      {
-        binding: 1,
-        visibility: GPUShaderStage.VERTEX,
-        buffer: {},
-      },
-      {
-        binding: 2,
-        visibility: GPUShaderStage.VERTEX,
-        buffer: {},
-      },
-      {
-        binding: 3,
-        visibility: GPUShaderStage.VERTEX,
-        buffer: {},
-      },
+      { binding: 0, visibility: GPUShaderStage.VERTEX, buffer: {} },
+      { binding: 1, visibility: GPUShaderStage.VERTEX, buffer: {} },
+      { binding: 2, visibility: GPUShaderStage.VERTEX, buffer: {} },
+      { binding: 3, visibility: GPUShaderStage.VERTEX, buffer: {} },
     ],
   });
 };
@@ -325,30 +309,10 @@ const createBindGroup = (
     label: label,
     layout: bindGroupLayout,
     entries: [
-      {
-        binding: 0,
-        resource: {
-          buffer: projectionBuffer,
-        },
-      },
-      {
-        binding: 1,
-        resource: {
-          buffer: cameraBuffer,
-        },
-      },
-      {
-        binding: 2,
-        resource: {
-          buffer: rotBuffer,
-        },
-      },
-      {
-        binding: 3,
-        resource: {
-          buffer: meshTypeBuffer,
-        },
-      },
+      { binding: 0, resource: { buffer: projectionBuffer } },
+      { binding: 1, resource: { buffer: cameraBuffer } },
+      { binding: 2, resource: { buffer: rotBuffer } },
+      { binding: 3, resource: { buffer: meshTypeBuffer } },
     ],
   });
 };
@@ -368,22 +332,14 @@ const createPipeline = (
     label: "my pipeline",
     layout: layout,
     vertex: {
-      module: device.createShaderModule({
-        code: shader,
-      }),
+      module: device.createShaderModule({ code: shader }),
       entryPoint: "vs_main",
       buffers: [mesh.bufferLayout],
     },
     fragment: {
-      module: device.createShaderModule({
-        code: shader,
-      }),
+      module: device.createShaderModule({ code: shader }),
       entryPoint: "fs_main",
-      targets: [
-        {
-          format: presentationFormat,
-        },
-      ],
+      targets: [{ format: presentationFormat }],
     },
     primitive: {
       topology: "triangle-list",
