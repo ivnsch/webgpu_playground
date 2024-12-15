@@ -20,7 +20,7 @@ export class WebGpu {
   axisMesh: Mesh | null = null;
 
   triangleBindGroup: GPUBindGroup | null = null;
-  axisBindGroup: GPUBindGroup | null = null;
+  xAxisBindGroup: GPUBindGroup | null = null;
 
   rotBuffer: GPUBuffer | null = null;
   eulersMatrix: mat4 | null = createIdentityMatrix();
@@ -105,7 +105,7 @@ export class WebGpu {
       this.meshTypeBufferTriangle
     );
 
-    this.axisBindGroup = createBindGroup(
+    this.xAxisBindGroup = createBindGroup(
       "x axis bind group",
       this.device,
       bindGroupLayout,
@@ -147,7 +147,7 @@ export class WebGpu {
         this.axisMesh &&
         this.triangleMesh &&
         this.triangleBindGroup &&
-        this.axisBindGroup &&
+        this.xAxisBindGroup &&
         this.rotBuffer &&
         this.eulersMatrix &&
         this.projectionBuffer &&
@@ -165,7 +165,7 @@ export class WebGpu {
       this.axisMesh,
       this.triangleMesh,
       this.triangleBindGroup,
-      this.axisBindGroup,
+      this.xAxisBindGroup,
       this.rotBuffer,
       this.eulersMatrix,
       this.projectionBuffer,
@@ -232,11 +232,11 @@ const render = (
   renderPassDescriptor: GPURenderPassDescriptor,
   pipeline: GPURenderPipeline,
   // it should be possible to make this more generic, for now like this
-  axisMesh: Mesh,
-  mesh: TriangleMesh,
+  triangleMesh: TriangleMesh,
+  xAxisMesh: Mesh,
 
-  bindGroup: GPUBindGroup,
-  bindGroupAxis: GPUBindGroup,
+  triangleBindGroup: GPUBindGroup,
+  xAxisbindGroup: GPUBindGroup,
 
   rotBuffer: GPUBuffer,
   rotMatrix: mat4,
@@ -255,13 +255,13 @@ const render = (
   pass.setPipeline(pipeline);
 
   // triangle
-  pass.setBindGroup(0, bindGroup);
-  pass.setVertexBuffer(0, mesh.buffer);
+  pass.setBindGroup(0, triangleBindGroup);
+  pass.setVertexBuffer(0, triangleMesh.buffer);
   pass.draw(3, 1);
 
   // axis
-  pass.setBindGroup(0, bindGroupAxis);
-  pass.setVertexBuffer(0, axisMesh.buffer);
+  pass.setBindGroup(0, xAxisbindGroup);
+  pass.setVertexBuffer(0, xAxisMesh.buffer);
   pass.draw(6, 1);
 
   pass.end();
@@ -406,7 +406,6 @@ class BindGroupCreationResult {
 }
 
 const createProjectionMatrix = () => {
-  //   return createIdentityMatrix();
   const m = mat4.create();
   mat4.perspective(m, Math.PI / 4, 800 / 600, 0.1, 10);
   return m;
