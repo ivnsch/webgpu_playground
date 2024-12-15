@@ -16,11 +16,11 @@ export class WebGpu {
 
   renderPassDescriptor: GPURenderPassDescriptor | null = null;
 
+  triangleMesh: TriangleMesh | null = null;
   axisMesh: Mesh | null = null;
-  mesh: TriangleMesh | null = null;
 
-  bindGroup: GPUBindGroup | null = null;
-  bindGroupAxis: GPUBindGroup | null = null;
+  triangleBindGroup: GPUBindGroup | null = null;
+  axisBindGroup: GPUBindGroup | null = null;
 
   rotBuffer: GPUBuffer | null = null;
   eulersMatrix: mat4 | null = createIdentityMatrix();
@@ -90,35 +90,37 @@ export class WebGpu {
     new Uint32Array(this.meshTypeBufferTriangle.getMappedRange()).set([1]);
     this.meshTypeBufferTriangle.unmap();
 
-    this.mesh = new TriangleMesh(this.device);
+    this.triangleMesh = new TriangleMesh(this.device);
     this.axisMesh = new Mesh("x axis mesh", this.device, xAxisVertices());
 
-    const bindGroupResult = createBindGroup(
+    const bindGroupLayout = createBindGroupLayout(this.device);
+
+    this.triangleBindGroup = createBindGroup(
+      "triangle bind group",
       this.device,
-      this.mesh.buffer,
+      bindGroupLayout,
       this.rotBuffer,
       this.projectionBuffer,
       this.cameraBuffer,
       this.meshTypeBufferTriangle
     );
-    this.bindGroup = bindGroupResult.bindGroup;
 
-    const bindGroupResultAxis = createBindGroup(
+    this.axisBindGroup = createBindGroup(
+      "x axis bind group",
       this.device,
-      this.mesh.buffer,
+      bindGroupLayout,
       this.rotBuffer,
       this.projectionBuffer,
       this.cameraBuffer,
       this.meshTypeBufferAxis
     );
-    this.bindGroupAxis = bindGroupResultAxis.bindGroup;
 
     this.pipeline = createPipeline(
       my_shader,
       device,
       this.presentationFormat,
-      this.mesh,
-      bindGroupResult.bindGroupLayout
+      this.triangleMesh,
+      bindGroupLayout
     );
   };
 
@@ -143,9 +145,9 @@ export class WebGpu {
         this.renderPassDescriptor &&
         this.pipeline &&
         this.axisMesh &&
-        this.mesh &&
-        this.bindGroup &&
-        this.bindGroupAxis &&
+        this.triangleMesh &&
+        this.triangleBindGroup &&
+        this.axisBindGroup &&
         this.rotBuffer &&
         this.eulersMatrix &&
         this.projectionBuffer &&
@@ -161,9 +163,9 @@ export class WebGpu {
       this.renderPassDescriptor,
       this.pipeline,
       this.axisMesh,
-      this.mesh,
-      this.bindGroup,
-      this.bindGroupAxis,
+      this.triangleMesh,
+      this.triangleBindGroup,
+      this.axisBindGroup,
       this.rotBuffer,
       this.eulersMatrix,
       this.projectionBuffer,
@@ -175,10 +177,10 @@ export class WebGpu {
   };
 
   setObjEulers = (pitch: number, yaw: number, roll: number) => {
-    if (!this.mesh) return;
+    if (!this.triangleMesh) return;
 
     // translate to origin
-    const transVec = this.mesh.translationToOrigin();
+    const transVec = this.triangleMesh.translationToOrigin();
     const transMatrix = trans(transVec);
 
     // rotate
@@ -253,7 +255,7 @@ const render = (
   pass.setPipeline(pipeline);
 
   // triangle
-  pass.setBindGroup(0, bindGroup!);
+  pass.setBindGroup(0, bindGroup);
   pass.setVertexBuffer(0, mesh.buffer);
   pass.draw(3, 1);
 
@@ -286,15 +288,8 @@ const createRenderPassDescriptor = (view: GPUTextureView): any => {
   };
 };
 
-const createBindGroup = (
-  device: GPUDevice,
-  meshBuffer: GPUBuffer,
-  rotBuffer: GPUBuffer,
-  projectionBuffer: GPUBuffer,
-  cameraBuffer: GPUBuffer,
-  meshTypeBuffer: GPUBuffer
-): BindGroupCreationResult => {
-  const bindGroupLayout = device.createBindGroupLayout({
+const createBindGroupLayout = (device: GPUDevice): GPUBindGroupLayout => {
+  return device.createBindGroupLayout({
     label: "my bind group layout",
     entries: [
       {
@@ -319,8 +314,19 @@ const createBindGroup = (
       },
     ],
   });
-  const bindGroup = device.createBindGroup({
-    label: "my bind group",
+};
+
+const createBindGroup = (
+  label: string,
+  device: GPUDevice,
+  bindGroupLayout: GPUBindGroupLayout,
+  rotBuffer: GPUBuffer,
+  projectionBuffer: GPUBuffer,
+  cameraBuffer: GPUBuffer,
+  meshTypeBuffer: GPUBuffer
+): GPUBindGroup => {
+  return device.createBindGroup({
+    label: label,
     layout: bindGroupLayout,
     entries: [
       {
@@ -349,8 +355,6 @@ const createBindGroup = (
       },
     ],
   });
-
-  return new BindGroupCreationResult(bindGroupLayout, bindGroup);
 };
 
 const createPipeline = (
