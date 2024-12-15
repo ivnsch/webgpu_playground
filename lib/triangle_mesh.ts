@@ -41,17 +41,12 @@ export class TriangleMesh {
 }
 
 const createBuffer = (device: GPUDevice, vertices: Float32Array): GPUBuffer => {
-  const usage: GPUBufferUsageFlags =
-    GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST;
-
-  const descriptor: GPUBufferDescriptor = {
+  return device.createBuffer({
     label: "my mesh buffer",
     size: vertices.byteLength,
-    usage: usage,
+    usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
     mappedAtCreation: true,
-  };
-
-  return device.createBuffer(descriptor);
+  });
 };
 
 const setVerticesInBuffer = (buffer: GPUBuffer, vertices: Float32Array) => {
