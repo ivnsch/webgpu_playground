@@ -232,8 +232,8 @@ const render = (
   renderPassDescriptor: GPURenderPassDescriptor,
   pipeline: GPURenderPipeline,
   // it should be possible to make this more generic, for now like this
-  triangleMesh: TriangleMesh,
   xAxisMesh: Mesh,
+  triangleMesh: TriangleMesh,
 
   triangleBindGroup: GPUBindGroup,
   xAxisbindGroup: GPUBindGroup,
