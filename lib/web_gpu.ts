@@ -17,7 +17,7 @@ export class WebGpu {
   renderPassDescriptor: GPURenderPassDescriptor | null = null;
 
   triangleMesh: TriangleMesh | null = null;
-  axisMesh: Mesh | null = null;
+  xAxisMesh: Mesh | null = null;
 
   triangleBindGroup: GPUBindGroup | null = null;
   xAxisBindGroup: GPUBindGroup | null = null;
@@ -31,8 +31,8 @@ export class WebGpu {
   cameraBuffer: GPUBuffer | null = null;
   camera: Camera;
 
-  meshTypeBufferAxis: GPUBuffer | null = null;
-  meshTypeBufferTriangle: GPUBuffer | null = null;
+  axisMeshTypeBuffer: GPUBuffer | null = null;
+  triangleMeshTypeBuffer: GPUBuffer | null = null;
 
   constructor(canvas: HTMLCanvasElement, cameraPos: vec3) {
     console.log(this.eulersMatrix);
@@ -75,23 +75,23 @@ export class WebGpu {
       size: 64,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
-    this.meshTypeBufferAxis = this.device.createBuffer({
+    this.axisMeshTypeBuffer = this.device.createBuffer({
       size: 16,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
       mappedAtCreation: true,
     });
-    new Uint32Array(this.meshTypeBufferAxis.getMappedRange()).set([0]);
-    this.meshTypeBufferAxis.unmap();
-    this.meshTypeBufferTriangle = this.device.createBuffer({
+    new Uint32Array(this.axisMeshTypeBuffer.getMappedRange()).set([0]);
+    this.axisMeshTypeBuffer.unmap();
+    this.triangleMeshTypeBuffer = this.device.createBuffer({
       size: 16,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
       mappedAtCreation: true,
     });
-    new Uint32Array(this.meshTypeBufferTriangle.getMappedRange()).set([1]);
-    this.meshTypeBufferTriangle.unmap();
+    new Uint32Array(this.triangleMeshTypeBuffer.getMappedRange()).set([1]);
+    this.triangleMeshTypeBuffer.unmap();
 
     this.triangleMesh = new TriangleMesh(this.device);
-    this.axisMesh = new Mesh("x axis mesh", this.device, xAxisVertices());
+    this.xAxisMesh = new Mesh("x axis mesh", this.device, xAxisVertices());
 
     const bindGroupLayout = createBindGroupLayout(this.device);
 
@@ -102,7 +102,7 @@ export class WebGpu {
       this.rotBuffer,
       this.projectionBuffer,
       this.cameraBuffer,
-      this.meshTypeBufferTriangle
+      this.triangleMeshTypeBuffer
     );
 
     this.xAxisBindGroup = createBindGroup(
@@ -112,7 +112,7 @@ export class WebGpu {
       this.rotBuffer,
       this.projectionBuffer,
       this.cameraBuffer,
-      this.meshTypeBufferAxis
+      this.axisMeshTypeBuffer
     );
 
     this.pipeline = createPipeline(
@@ -144,7 +144,7 @@ export class WebGpu {
         this.device &&
         this.renderPassDescriptor &&
         this.pipeline &&
-        this.axisMesh &&
+        this.xAxisMesh &&
         this.triangleMesh &&
         this.triangleBindGroup &&
         this.xAxisBindGroup &&
@@ -152,7 +152,7 @@ export class WebGpu {
         this.eulersMatrix &&
         this.projectionBuffer &&
         this.cameraBuffer &&
-        this.meshTypeBufferAxis
+        this.axisMeshTypeBuffer
       )
     ) {
       return;
@@ -162,7 +162,7 @@ export class WebGpu {
       this.device,
       this.renderPassDescriptor,
       this.pipeline,
-      this.axisMesh,
+      this.xAxisMesh,
       this.triangleMesh,
       this.triangleBindGroup,
       this.xAxisBindGroup,
@@ -172,7 +172,7 @@ export class WebGpu {
       this.projection,
       this.cameraBuffer,
       this.camera,
-      this.meshTypeBufferAxis
+      this.axisMeshTypeBuffer
     );
   };
 
