@@ -391,16 +391,6 @@ const createPipeline = (
   });
 };
 
-class BindGroupCreationResult {
-  bindGroupLayout: GPUBindGroupLayout;
-  bindGroup: GPUBindGroup;
-
-  constructor(bindGroupLayout: GPUBindGroupLayout, bindGroup: GPUBindGroup) {
-    this.bindGroupLayout = bindGroupLayout;
-    this.bindGroup = bindGroup;
-  }
-}
-
 const createProjectionMatrix = () => {
   const m = mat4.create();
   mat4.perspective(m, Math.PI / 4, 800 / 600, 0.1, 10);
