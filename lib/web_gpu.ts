@@ -3,6 +3,7 @@ import { setObjPitch, setObjYaw, setObjRoll, trans } from "./matrix_3x3";
 import { TriangleMesh } from "./triangle_mesh";
 import my_shader from "./shaders/screen_shader.wgsl";
 import { Camera } from "./camera";
+import { AxisMesh } from "./axis_mesh";
 
 export class WebGpu {
   adapter: GPUAdapter | null = null;
@@ -14,9 +15,11 @@ export class WebGpu {
 
   renderPassDescriptor: GPURenderPassDescriptor | null = null;
 
+  axisMesh: AxisMesh | null = null;
   mesh: TriangleMesh | null = null;
 
   bindGroup: GPUBindGroup | null = null;
+  bindGroupAxis: GPUBindGroup | null = null;
 
   rotBuffer: GPUBuffer | null = null;
   eulersMatrix: mat4 | null = createIdentityMatrix();
@@ -26,6 +29,9 @@ export class WebGpu {
 
   cameraBuffer: GPUBuffer | null = null;
   camera: Camera;
+
+  meshTypeBufferAxis: GPUBuffer | null = null;
+  meshTypeBufferTriangle: GPUBuffer | null = null;
 
   constructor(canvas: HTMLCanvasElement, cameraPos: vec3) {
     console.log(this.eulersMatrix);
@@ -68,17 +74,44 @@ export class WebGpu {
       size: 64,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
+    this.meshTypeBufferAxis = this.device.createBuffer({
+      size: 16,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+      mappedAtCreation: true,
+    });
+    new Uint32Array(this.meshTypeBufferAxis.getMappedRange()).set([0]);
+    this.meshTypeBufferAxis.unmap();
+    this.meshTypeBufferTriangle = this.device.createBuffer({
+      size: 16,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+      mappedAtCreation: true,
+    });
+    new Uint32Array(this.meshTypeBufferTriangle.getMappedRange()).set([1]);
+    this.meshTypeBufferTriangle.unmap();
 
     this.mesh = new TriangleMesh(this.device);
+    this.axisMesh = new AxisMesh(this.device);
 
     const bindGroupResult = createBindGroup(
       this.device,
       this.mesh.buffer,
       this.rotBuffer,
       this.projectionBuffer,
-      this.cameraBuffer
+      this.cameraBuffer,
+      this.meshTypeBufferTriangle
     );
     this.bindGroup = bindGroupResult.bindGroup;
+
+    const bindGroupResultAxis = createBindGroup(
+      this.device,
+      this.mesh.buffer,
+      this.rotBuffer,
+      this.projectionBuffer,
+      this.cameraBuffer,
+      this.meshTypeBufferAxis
+    );
+    this.bindGroupAxis = bindGroupResultAxis.bindGroup;
+
     this.pipeline = createPipeline(
       my_shader,
       device,
@@ -108,12 +141,15 @@ export class WebGpu {
         this.device &&
         this.renderPassDescriptor &&
         this.pipeline &&
+        this.axisMesh &&
         this.mesh &&
         this.bindGroup &&
+        this.bindGroupAxis &&
         this.rotBuffer &&
         this.eulersMatrix &&
         this.projectionBuffer &&
-        this.cameraBuffer
+        this.cameraBuffer &&
+        this.meshTypeBufferAxis
       )
     ) {
       return;
@@ -123,14 +159,17 @@ export class WebGpu {
       this.device,
       this.renderPassDescriptor,
       this.pipeline,
+      this.axisMesh,
       this.mesh,
       this.bindGroup,
+      this.bindGroupAxis,
       this.rotBuffer,
       this.eulersMatrix,
       this.projectionBuffer,
       this.projection,
       this.cameraBuffer,
-      this.camera
+      this.camera,
+      this.meshTypeBufferAxis
     );
   };
 
@@ -190,9 +229,11 @@ const render = (
   renderPassDescriptor: GPURenderPassDescriptor,
   pipeline: GPURenderPipeline,
   // it should be possible to make this more generic, for now like this
+  axisMesh: AxisMesh,
   mesh: TriangleMesh,
 
   bindGroup: GPUBindGroup,
+  bindGroupAxis: GPUBindGroup,
 
   rotBuffer: GPUBuffer,
   rotMatrix: mat4,
@@ -200,7 +241,8 @@ const render = (
   projectionBuffer: GPUBuffer,
   projection: mat4,
   cameraBuffer: GPUBuffer,
-  camera: Camera
+  camera: Camera,
+  meshTypeBuffer: GPUBuffer
 ) => {
   camera.update();
 
@@ -209,10 +251,16 @@ const render = (
   const pass = encoder.beginRenderPass(renderPassDescriptor);
   pass.setPipeline(pipeline);
 
+  // triangle
+  pass.setBindGroup(0, bindGroup!);
   pass.setVertexBuffer(0, mesh.buffer);
-  pass.setBindGroup(0, bindGroup);
+  pass.draw(3, 1);
 
-  pass.draw(3); // call our vertex shader 3 times
+  // axis
+  pass.setBindGroup(0, bindGroupAxis);
+  pass.setVertexBuffer(0, axisMesh.buffer);
+  pass.draw(6, 1);
+
   pass.end();
 
   const commandBuffer = encoder.finish();
@@ -242,7 +290,8 @@ const createBindGroup = (
   meshBuffer: GPUBuffer,
   rotBuffer: GPUBuffer,
   projectionBuffer: GPUBuffer,
-  cameraBuffer: GPUBuffer
+  cameraBuffer: GPUBuffer,
+  meshTypeBuffer: GPUBuffer
 ): BindGroupCreationResult => {
   const bindGroupLayout = device.createBindGroupLayout({
     label: "my bind group layout",
@@ -259,6 +308,11 @@ const createBindGroup = (
       },
       {
         binding: 2,
+        visibility: GPUShaderStage.VERTEX,
+        buffer: {},
+      },
+      {
+        binding: 3,
         visibility: GPUShaderStage.VERTEX,
         buffer: {},
       },
@@ -284,6 +338,12 @@ const createBindGroup = (
         binding: 2,
         resource: {
           buffer: rotBuffer,
+        },
+      },
+      {
+        binding: 3,
+        resource: {
+          buffer: meshTypeBuffer,
         },
       },
     ],
