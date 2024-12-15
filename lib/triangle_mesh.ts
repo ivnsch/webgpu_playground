@@ -1,4 +1,9 @@
 import { vec3 } from "gl-matrix";
+import {
+  createDefaultBuffer,
+  createDefaultBufferLayout,
+  setDefaultVerticesInBuffer,
+} from "./mesh";
 
 export class TriangleMesh {
   buffer: GPUBuffer;
@@ -8,10 +13,10 @@ export class TriangleMesh {
   private vertices: Float32Array = TriangleMesh.initVertices();
 
   constructor(device: GPUDevice) {
-    this.buffer = createBuffer(device, this.vertices);
-    setVerticesInBuffer(this.buffer, this.vertices);
+    this.buffer = createDefaultBuffer("triangle mesh", device, this.vertices);
+    setDefaultVerticesInBuffer(this.buffer, this.vertices);
 
-    this.bufferLayout = createBufferLayout();
+    this.bufferLayout = createDefaultBufferLayout();
   }
 
   center = (): vec3 => {
@@ -39,31 +44,3 @@ export class TriangleMesh {
     ]);
   };
 }
-
-const createBuffer = (device: GPUDevice, vertices: Float32Array): GPUBuffer => {
-  return device.createBuffer({
-    label: "my mesh buffer",
-    size: vertices.byteLength,
-    usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-    mappedAtCreation: true,
-  });
-};
-
-const setVerticesInBuffer = (buffer: GPUBuffer, vertices: Float32Array) => {
-  new Float32Array(buffer.getMappedRange()).set(vertices);
-  buffer.unmap();
-};
-
-const createBufferLayout = (): GPUVertexBufferLayout => {
-  return {
-    arrayStride: 12, // 3 floats per vertex * 4 bytes per float
-    attributes: [
-      {
-        // 3 floats, with 0 offset
-        shaderLocation: 0,
-        format: "float32x3",
-        offset: 0,
-      },
-    ],
-  };
-};

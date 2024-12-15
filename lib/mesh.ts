@@ -4,31 +4,38 @@ export class Mesh {
 
   private vertices: Float32Array;
 
-  constructor(device: GPUDevice, vertices: Float32Array) {
+  constructor(label: string, device: GPUDevice, vertices: Float32Array) {
     this.vertices = vertices;
 
-    this.buffer = createBuffer(device, this.vertices);
-    setVerticesInBuffer(this.buffer, this.vertices);
+    this.buffer = createDefaultBuffer(label, device, this.vertices);
+    setDefaultVerticesInBuffer(this.buffer, this.vertices);
 
-    this.bufferLayout = createBufferLayout();
+    this.bufferLayout = createDefaultBufferLayout();
   }
 }
 
-const createBuffer = (device: GPUDevice, vertices: Float32Array): GPUBuffer => {
+export const createDefaultBuffer = (
+  label: string,
+  device: GPUDevice,
+  vertices: Float32Array
+): GPUBuffer => {
   return device.createBuffer({
-    label: "my mesh buffer",
+    label: label,
     size: vertices.byteLength,
     usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
     mappedAtCreation: true,
   });
 };
 
-const setVerticesInBuffer = (buffer: GPUBuffer, vertices: Float32Array) => {
+export const setDefaultVerticesInBuffer = (
+  buffer: GPUBuffer,
+  vertices: Float32Array
+) => {
   new Float32Array(buffer.getMappedRange()).set(vertices);
   buffer.unmap();
 };
 
-const createBufferLayout = (): GPUVertexBufferLayout => {
+export const createDefaultBufferLayout = (): GPUVertexBufferLayout => {
   return {
     arrayStride: 12, // 3 floats per vertex * 4 bytes per float
     attributes: [

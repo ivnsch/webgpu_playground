@@ -91,7 +91,7 @@ export class WebGpu {
     this.meshTypeBufferTriangle.unmap();
 
     this.mesh = new TriangleMesh(this.device);
-    this.axisMesh = new Mesh(this.device, xAxisVertices());
+    this.axisMesh = new Mesh("x axis mesh", this.device, xAxisVertices());
 
     const bindGroupResult = createBindGroup(
       this.device,
