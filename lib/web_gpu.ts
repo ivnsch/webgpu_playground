@@ -22,7 +22,7 @@ export class WebGpu {
   zAxisMesh: Mesh | null = null;
 
   triangleBindGroup: GPUBindGroup | null = null;
-  xAxisBindGroup: GPUBindGroup | null = null;
+  axisBindGroup: GPUBindGroup | null = null;
 
   rotBuffer: GPUBuffer | null = null;
   eulersMatrix: mat4 | null = createIdentityMatrix();
@@ -65,30 +65,15 @@ export class WebGpu {
       format: this.presentationFormat,
     });
 
-    this.rotBuffer = this.device.createBuffer({
-      size: 64,
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-    });
-    this.projectionBuffer = this.device.createBuffer({
-      size: 64,
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-    });
-    this.cameraBuffer = this.device.createBuffer({
-      size: 64,
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-    });
-    this.axisMeshTypeBuffer = this.device.createBuffer({
-      size: 16,
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-      mappedAtCreation: true,
-    });
+    this.rotBuffer = createMatrixUniformBuffer(device);
+    this.projectionBuffer = createMatrixUniformBuffer(device);
+    this.cameraBuffer = createMatrixUniformBuffer(device);
+
+    this.axisMeshTypeBuffer = createMeshTypeUniformBuffer(device);
     new Uint32Array(this.axisMeshTypeBuffer.getMappedRange()).set([0]);
     this.axisMeshTypeBuffer.unmap();
-    this.triangleMeshTypeBuffer = this.device.createBuffer({
-      size: 16,
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-      mappedAtCreation: true,
-    });
+
+    this.triangleMeshTypeBuffer = createMeshTypeUniformBuffer(device);
     new Uint32Array(this.triangleMeshTypeBuffer.getMappedRange()).set([1]);
     this.triangleMeshTypeBuffer.unmap();
 
@@ -109,7 +94,7 @@ export class WebGpu {
       this.triangleMeshTypeBuffer
     );
 
-    this.xAxisBindGroup = createBindGroup(
+    this.axisBindGroup = createBindGroup(
       "x axis bind group",
       this.device,
       bindGroupLayout,
@@ -153,7 +138,7 @@ export class WebGpu {
         this.zAxisMesh &&
         this.triangleMesh &&
         this.triangleBindGroup &&
-        this.xAxisBindGroup &&
+        this.axisBindGroup &&
         this.rotBuffer &&
         this.eulersMatrix &&
         this.projectionBuffer &&
@@ -172,7 +157,7 @@ export class WebGpu {
       this.zAxisMesh,
       this.triangleMesh,
       this.triangleBindGroup,
-      this.xAxisBindGroup,
+      this.axisBindGroup,
       this.rotBuffer,
       this.eulersMatrix,
       this.projectionBuffer,
@@ -432,4 +417,19 @@ export const origin = () => {
   const m = vec3.create();
   vec3.zero(m);
   return m;
+};
+
+const createMatrixUniformBuffer = (device: GPUDevice): GPUBuffer => {
+  return device.createBuffer({
+    size: 64,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+  });
+};
+
+const createMeshTypeUniformBuffer = (device: GPUDevice): GPUBuffer => {
+  return device.createBuffer({
+    size: 16,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    mappedAtCreation: true,
+  });
 };
