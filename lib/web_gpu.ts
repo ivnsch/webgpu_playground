@@ -4,7 +4,7 @@ import { TriangleMesh } from "./triangle_mesh";
 import my_shader from "./shaders/screen_shader.wgsl";
 import { Camera } from "./camera";
 import { Mesh } from "./mesh";
-import { xAxisVertices } from "./axis_mesh";
+import { xAxisVertices, yAxisVertices } from "./axis_mesh";
 
 export class WebGpu {
   adapter: GPUAdapter | null = null;
@@ -18,6 +18,7 @@ export class WebGpu {
 
   triangleMesh: TriangleMesh | null = null;
   xAxisMesh: Mesh | null = null;
+  yAxisMesh: Mesh | null = null;
 
   triangleBindGroup: GPUBindGroup | null = null;
   xAxisBindGroup: GPUBindGroup | null = null;
@@ -92,6 +93,7 @@ export class WebGpu {
 
     this.triangleMesh = new TriangleMesh(this.device);
     this.xAxisMesh = new Mesh("x axis mesh", this.device, xAxisVertices());
+    this.yAxisMesh = new Mesh("y axis mesh", this.device, yAxisVertices());
 
     const bindGroupLayout = createBindGroupLayout(this.device);
 
@@ -145,14 +147,14 @@ export class WebGpu {
         this.renderPassDescriptor &&
         this.pipeline &&
         this.xAxisMesh &&
+        this.yAxisMesh &&
         this.triangleMesh &&
         this.triangleBindGroup &&
         this.xAxisBindGroup &&
         this.rotBuffer &&
         this.eulersMatrix &&
         this.projectionBuffer &&
-        this.cameraBuffer &&
-        this.axisMeshTypeBuffer
+        this.cameraBuffer
       )
     ) {
       return;
@@ -163,6 +165,7 @@ export class WebGpu {
       this.renderPassDescriptor,
       this.pipeline,
       this.xAxisMesh,
+      this.yAxisMesh,
       this.triangleMesh,
       this.triangleBindGroup,
       this.xAxisBindGroup,
@@ -171,8 +174,7 @@ export class WebGpu {
       this.projectionBuffer,
       this.projection,
       this.cameraBuffer,
-      this.camera,
-      this.axisMeshTypeBuffer
+      this.camera
     );
   };
 
@@ -233,10 +235,11 @@ const render = (
   pipeline: GPURenderPipeline,
   // it should be possible to make this more generic, for now like this
   xAxisMesh: Mesh,
+  yAxisMesh: Mesh,
   triangleMesh: TriangleMesh,
 
   triangleBindGroup: GPUBindGroup,
-  xAxisbindGroup: GPUBindGroup,
+  axesbindGroup: GPUBindGroup,
 
   rotBuffer: GPUBuffer,
   rotMatrix: mat4,
@@ -244,8 +247,7 @@ const render = (
   projectionBuffer: GPUBuffer,
   projection: mat4,
   cameraBuffer: GPUBuffer,
-  camera: Camera,
-  meshTypeBuffer: GPUBuffer
+  camera: Camera
 ) => {
   camera.update();
 
@@ -259,9 +261,11 @@ const render = (
   pass.setVertexBuffer(0, triangleMesh.buffer);
   pass.draw(3, 1);
 
-  // axis
-  pass.setBindGroup(0, xAxisbindGroup);
+  // axes
+  pass.setBindGroup(0, axesbindGroup);
   pass.setVertexBuffer(0, xAxisMesh.buffer);
+  pass.draw(6, 1);
+  pass.setVertexBuffer(0, yAxisMesh.buffer);
   pass.draw(6, 1);
 
   pass.end();
