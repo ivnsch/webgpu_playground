@@ -30,8 +30,8 @@ export class App {
 
   handleKeypress(event: any) {
     const deltaObj = 0.05;
-    const deltaCameraRot = 1;
-    const deltaCameraTrans = 0.1;
+    const deltaCameraRot = 2;
+    const deltaCameraTrans = 0.3;
     if (event.code == "KeyX") {
       this.objPitch += deltaObj;
     }
