@@ -22,7 +22,9 @@ export class WebGpu {
   zAxisMesh: Mesh | null = null;
 
   triangleBindGroup: GPUBindGroup | null = null;
-  axisBindGroup: GPUBindGroup | null = null;
+  xAxisBindGroup: GPUBindGroup | null = null;
+  yAxisBindGroup: GPUBindGroup | null = null;
+  zAxisBindGroup: GPUBindGroup | null = null;
 
   rotBuffer: GPUBuffer | null = null;
   eulersMatrix: mat4 | null = createIdentityMatrix();
@@ -33,7 +35,9 @@ export class WebGpu {
   cameraBuffer: GPUBuffer | null = null;
   camera: Camera;
 
-  axisMeshTypeBuffer: GPUBuffer | null = null;
+  xAxisMeshTypeBuffer: GPUBuffer | null = null;
+  yAxisMeshTypeBuffer: GPUBuffer | null = null;
+  zAxisMeshTypeBuffer: GPUBuffer | null = null;
   triangleMeshTypeBuffer: GPUBuffer | null = null;
 
   axisInstancesBuffer: GPUBuffer | null = null;
@@ -92,12 +96,18 @@ export class WebGpu {
     this.projectionBuffer = createMatrixUniformBuffer(device);
     this.cameraBuffer = createMatrixUniformBuffer(device);
 
-    this.axisMeshTypeBuffer = createMeshTypeUniformBuffer(device);
-    new Uint32Array(this.axisMeshTypeBuffer.getMappedRange()).set([0]);
-    this.axisMeshTypeBuffer.unmap();
-
+    // types
+    this.xAxisMeshTypeBuffer = createMeshTypeUniformBuffer(device);
+    new Uint32Array(this.xAxisMeshTypeBuffer.getMappedRange()).set([0]);
+    this.xAxisMeshTypeBuffer.unmap();
+    this.yAxisMeshTypeBuffer = createMeshTypeUniformBuffer(device);
+    new Uint32Array(this.yAxisMeshTypeBuffer.getMappedRange()).set([1]);
+    this.yAxisMeshTypeBuffer.unmap();
+    this.zAxisMeshTypeBuffer = createMeshTypeUniformBuffer(device);
+    new Uint32Array(this.zAxisMeshTypeBuffer.getMappedRange()).set([2]);
+    this.zAxisMeshTypeBuffer.unmap();
     this.triangleMeshTypeBuffer = createMeshTypeUniformBuffer(device);
-    new Uint32Array(this.triangleMeshTypeBuffer.getMappedRange()).set([1]);
+    new Uint32Array(this.triangleMeshTypeBuffer.getMappedRange()).set([3]);
     this.triangleMeshTypeBuffer.unmap();
 
     const numAxisInstances = 2;
@@ -143,14 +153,40 @@ export class WebGpu {
       this.instance1Buffer
     );
 
-    this.axisBindGroup = createBindGroup(
+    this.xAxisBindGroup = createBindGroup(
       "x axis bind group",
       this.device,
       bindGroupLayout,
       this.rotBuffer,
       this.projectionBuffer,
       this.cameraBuffer,
-      this.axisMeshTypeBuffer,
+      this.xAxisMeshTypeBuffer,
+      this.axisInstancesBuffer,
+      this.identityBuffer,
+      this.instance1Buffer
+    );
+
+    this.yAxisBindGroup = createBindGroup(
+      "y axis bind group",
+      this.device,
+      bindGroupLayout,
+      this.rotBuffer,
+      this.projectionBuffer,
+      this.cameraBuffer,
+      this.yAxisMeshTypeBuffer,
+      this.axisInstancesBuffer,
+      this.identityBuffer,
+      this.instance1Buffer
+    );
+
+    this.zAxisBindGroup = createBindGroup(
+      "z axis bind group",
+      this.device,
+      bindGroupLayout,
+      this.rotBuffer,
+      this.projectionBuffer,
+      this.cameraBuffer,
+      this.zAxisMeshTypeBuffer,
       this.axisInstancesBuffer,
       this.identityBuffer,
       this.instance1Buffer
@@ -190,7 +226,9 @@ export class WebGpu {
         this.zAxisMesh &&
         this.triangleMesh &&
         this.triangleBindGroup &&
-        this.axisBindGroup &&
+        this.xAxisBindGroup &&
+        this.yAxisBindGroup &&
+        this.zAxisBindGroup &&
         this.rotBuffer &&
         this.eulersMatrix &&
         this.projectionBuffer &&
@@ -212,7 +250,9 @@ export class WebGpu {
       this.zAxisMesh,
       this.triangleMesh,
       this.triangleBindGroup,
-      this.axisBindGroup,
+      this.xAxisBindGroup,
+      this.yAxisBindGroup,
+      this.zAxisBindGroup,
       this.rotBuffer,
       this.eulersMatrix,
       this.projectionBuffer,
@@ -290,7 +330,9 @@ const render = (
   triangleMesh: TriangleMesh,
 
   triangleBindGroup: GPUBindGroup,
-  axesbindGroup: GPUBindGroup,
+  xAxisbindGroup: GPUBindGroup,
+  yAxisbindGroup: GPUBindGroup,
+  zAxisbindGroup: GPUBindGroup,
 
   rotBuffer: GPUBuffer,
   rotMatrix: mat4,
@@ -320,11 +362,13 @@ const render = (
   pass.draw(3, 1);
 
   // axes
-  pass.setBindGroup(0, axesbindGroup);
+  pass.setBindGroup(0, xAxisbindGroup);
   pass.setVertexBuffer(0, xAxisMesh.buffer);
   pass.draw(6, 2);
+  pass.setBindGroup(0, yAxisbindGroup);
   pass.setVertexBuffer(0, yAxisMesh.buffer);
   pass.draw(6, 1);
+  pass.setBindGroup(0, zAxisbindGroup);
   pass.setVertexBuffer(0, zAxisMesh.buffer);
   pass.draw(6, 1);
 

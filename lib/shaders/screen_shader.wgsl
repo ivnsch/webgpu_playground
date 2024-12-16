@@ -23,18 +23,27 @@ fn vs_main(
 
     var output: OurVertexShaderOutput;
 
-    if (meshType == 0) { // axis
+    if (meshType == 0) { // x axis
         // position instance
         // transformed = axes_transforms[instance_idx] * vertex_4;
         // transformed = identity * vertex_4;
         if instance_idx == 0 {
             transformed = instance1Buffer * vertex_4;
+            output.color = vec3<f32>(1.0, 0.0, 1.0); // magenta
         } else {
             transformed = vertex_4;
+            output.color = vec3<f32>(0.0, 0.0, 1.0); // blue
         }
-        output.color = vec3<f32>(0.0, 0.0, 1.0); // black
         // don't transform axis
-    } else if (meshType == 1) { // triangle
+    } else if (meshType == 1) { // y axis
+        transformed = vertex_4;
+        output.color = vec3<f32>(0.0, 1.0, 0.0); // green
+        // don't transform axis
+    }  else if (meshType == 2) { // z axis
+        transformed = vertex_4;
+        output.color = vec3<f32>(0.0, 1.0, 1.0); // cyan
+        // don't transform axis
+    } else if (meshType == 3) { // triangle
         output.color = vec3<f32>(1.0, 0.0, 0.0); // red
         transformed = rotation * vertex_4;
     } else { // unexpected
