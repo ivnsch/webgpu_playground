@@ -36,6 +36,21 @@ export class WebGpu {
   axisMeshTypeBuffer: GPUBuffer | null = null;
   triangleMeshTypeBuffer: GPUBuffer | null = null;
 
+  axisInstancesBuffer: GPUBuffer | null = null;
+  numAxisInstances = 2;
+  matrixFloatCount = 16; // 4x4 matrix
+  matrixSize = 4 * this.matrixFloatCount;
+  axisInstancesMatrices = new Float32Array(
+    this.matrixFloatCount * this.numAxisInstances
+  );
+  //   axisModelMatrices = new Array<mat4>(this.numAxisInstances);
+
+  identityBuffer: GPUBuffer | null = null;
+  identity: mat4;
+
+  instance1Buffer: GPUBuffer | null = null;
+  instance1Matrix: mat4;
+
   constructor(canvas: HTMLCanvasElement, cameraPos: vec3) {
     console.log(this.eulersMatrix);
 
@@ -44,6 +59,14 @@ export class WebGpu {
 
     this.projection = createProjectionMatrix();
     this.camera = new Camera(cameraPos);
+
+    this.axisInstancesMatrices.set(createXAxisInstanceTranslationMatrix(0), 0);
+    this.axisInstancesMatrices.set(createXAxisInstanceTranslationMatrix(0), 1);
+
+    this.identity = mat4.create();
+    mat4.identity(this.identity);
+
+    this.instance1Matrix = createXAxisInstanceTranslationMatrix(1.2);
   }
 
   init = async (navigator: Navigator) => {
@@ -77,6 +100,29 @@ export class WebGpu {
     new Uint32Array(this.triangleMeshTypeBuffer.getMappedRange()).set([1]);
     this.triangleMeshTypeBuffer.unmap();
 
+    const numAxisInstances = 2;
+    const matrixFloatCount = 16; // 4x4 matrix
+    const matrixSize = 4 * matrixFloatCount;
+
+    const axisInstancesBufferSize = numAxisInstances * matrixSize;
+    console.log("!! axisInstancesBufferSize: %o", axisInstancesBufferSize);
+    this.axisInstancesBuffer = device.createBuffer({
+      label: "axis instances buffer",
+      size: axisInstancesBufferSize,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
+
+    this.identityBuffer = device.createBuffer({
+      label: "identity buffer",
+      size: 64, // 4 x 4 matrix x 4 bytes per float
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
+    this.instance1Buffer = device.createBuffer({
+      label: "instance 1 buffer",
+      size: 64, // 4 x 4 matrix x 4 bytes per float
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
+
     this.triangleMesh = new TriangleMesh(this.device);
     this.xAxisMesh = new Mesh("x axis mesh", this.device, xAxisVertices());
     this.yAxisMesh = new Mesh("y axis mesh", this.device, yAxisVertices());
@@ -91,7 +137,10 @@ export class WebGpu {
       this.rotBuffer,
       this.projectionBuffer,
       this.cameraBuffer,
-      this.triangleMeshTypeBuffer
+      this.triangleMeshTypeBuffer,
+      this.axisInstancesBuffer,
+      this.identityBuffer,
+      this.instance1Buffer
     );
 
     this.axisBindGroup = createBindGroup(
@@ -101,7 +150,10 @@ export class WebGpu {
       this.rotBuffer,
       this.projectionBuffer,
       this.cameraBuffer,
-      this.axisMeshTypeBuffer
+      this.axisMeshTypeBuffer,
+      this.axisInstancesBuffer,
+      this.identityBuffer,
+      this.instance1Buffer
     );
 
     this.pipeline = createPipeline(
@@ -142,7 +194,10 @@ export class WebGpu {
         this.rotBuffer &&
         this.eulersMatrix &&
         this.projectionBuffer &&
-        this.cameraBuffer
+        this.cameraBuffer &&
+        this.axisInstancesBuffer &&
+        this.identityBuffer &&
+        this.instance1Buffer
       )
     ) {
       return;
@@ -163,7 +218,13 @@ export class WebGpu {
       this.projectionBuffer,
       this.projection,
       this.cameraBuffer,
-      this.camera
+      this.camera,
+      this.axisInstancesBuffer,
+      this.axisInstancesMatrices,
+      this.identityBuffer,
+      this.identity,
+      this.instance1Buffer,
+      this.instance1Matrix
     );
   };
 
@@ -237,7 +298,14 @@ const render = (
   projectionBuffer: GPUBuffer,
   projection: mat4,
   cameraBuffer: GPUBuffer,
-  camera: Camera
+  camera: Camera,
+
+  axisInstancesBuffer: GPUBuffer,
+  axisInstancesMatrices: Float32Array,
+  identityBuffer: GPUBuffer,
+  identityMatrix: mat4,
+  instance1Buffer: GPUBuffer,
+  instance1Matrix: mat4
 ) => {
   camera.update();
 
@@ -254,7 +322,7 @@ const render = (
   // axes
   pass.setBindGroup(0, axesbindGroup);
   pass.setVertexBuffer(0, xAxisMesh.buffer);
-  pass.draw(6, 1);
+  pass.draw(6, 2);
   pass.setVertexBuffer(0, yAxisMesh.buffer);
   pass.draw(6, 1);
   pass.setVertexBuffer(0, zAxisMesh.buffer);
@@ -268,6 +336,17 @@ const render = (
   device.queue.writeBuffer(rotBuffer, 0, <ArrayBuffer>rotMatrix);
   device.queue.writeBuffer(projectionBuffer, 0, <ArrayBuffer>projection);
   device.queue.writeBuffer(cameraBuffer, 0, <ArrayBuffer>camera.matrix());
+  device.queue.writeBuffer(identityBuffer, 0, <ArrayBuffer>identityMatrix);
+  device.queue.writeBuffer(instance1Buffer, 0, <ArrayBuffer>instance1Matrix);
+
+  console.log("!! axisInstancesBuffer:" + axisInstancesBuffer);
+  //   device.queue.writeBuffer(
+  //     axisInstancesBuffer,
+  //     0,
+  //     axisInstancesMatrices.buffer,
+  //     axisInstancesMatrices.byteOffset,
+  //     axisInstancesMatrices.byteLength
+  //   );
 };
 
 const createRenderPassDescriptor = (view: GPUTextureView): any => {
@@ -292,6 +371,9 @@ const createBindGroupLayout = (device: GPUDevice): GPUBindGroupLayout => {
       { binding: 1, visibility: GPUShaderStage.VERTEX, buffer: {} },
       { binding: 2, visibility: GPUShaderStage.VERTEX, buffer: {} },
       { binding: 3, visibility: GPUShaderStage.VERTEX, buffer: {} },
+      { binding: 4, visibility: GPUShaderStage.VERTEX, buffer: {} },
+      { binding: 5, visibility: GPUShaderStage.VERTEX, buffer: {} },
+      { binding: 6, visibility: GPUShaderStage.VERTEX, buffer: {} },
     ],
   });
 };
@@ -303,7 +385,10 @@ const createBindGroup = (
   rotBuffer: GPUBuffer,
   projectionBuffer: GPUBuffer,
   cameraBuffer: GPUBuffer,
-  meshTypeBuffer: GPUBuffer
+  meshTypeBuffer: GPUBuffer,
+  axisInstancesBuffer: GPUBuffer,
+  identityBuffer: GPUBuffer,
+  instance1Buffer: GPUBuffer
 ): GPUBindGroup => {
   return device.createBindGroup({
     label: label,
@@ -313,6 +398,9 @@ const createBindGroup = (
       { binding: 1, resource: { buffer: cameraBuffer } },
       { binding: 2, resource: { buffer: rotBuffer } },
       { binding: 3, resource: { buffer: meshTypeBuffer } },
+      { binding: 4, resource: { buffer: axisInstancesBuffer } },
+      { binding: 5, resource: { buffer: identityBuffer } },
+      { binding: 6, resource: { buffer: instance1Buffer } },
     ],
   });
 };
@@ -378,4 +466,18 @@ const createMeshTypeUniformBuffer = (device: GPUDevice): GPUBuffer => {
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     mappedAtCreation: true,
   });
+};
+
+const createXAxisInstanceTranslationMatrix = (y: number): mat4 => {
+  const m = mat4.create();
+  mat4.fromTranslation(m, vec3.fromValues(0, y, 0));
+  //   mat4.fromTranslation(m, vec3.fromValues(100, 100, 100));
+  console.log("!! m: %o", m);
+
+  //   const transposed = mat4.create();
+  //   mat4.transpose(transposed, m);
+
+  //   return mat4.identity(m);
+  return m;
+  //   return transposed;
 };
