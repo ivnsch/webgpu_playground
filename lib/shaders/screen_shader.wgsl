@@ -7,7 +7,7 @@ struct OurVertexShaderOutput {
 @binding(1) @group(0) var<uniform> camera: mat4x4<f32>;
 @binding(2) @group(0) var<uniform> rotation: mat4x4<f32>;
 @binding(3) @group(0) var<uniform> meshType: u32;
-@binding(4) @group(0) var<uniform> axes_transforms: array<mat4x4f, 2>;
+@binding(4) @group(0) var<uniform> axes_transforms: array<mat4x4f, 20>;
 @binding(5) @group(0) var<uniform> identity: mat4x4f; // for debugging sometimes..
 
 @vertex

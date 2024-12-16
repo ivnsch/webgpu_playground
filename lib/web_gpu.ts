@@ -41,7 +41,7 @@ export class WebGpu {
   triangleMeshTypeBuffer: GPUBuffer | null = null;
 
   axisInstancesBuffer: GPUBuffer | null = null;
-  numAxisInstances = 2;
+  numAxisInstances = 20; // remember to set this in axes_transforms in the shader too
   matrixFloatCount = 16; // 4x4 matrix
   matrixSize = 4 * this.matrixFloatCount;
   axisInstancesMatrices = new Float32Array(
@@ -59,8 +59,14 @@ export class WebGpu {
     this.projection = createProjectionMatrix();
     this.camera = new Camera(cameraPos);
 
-    this.axisInstancesMatrices.set(createXAxisInstanceTranslationMatrix(0), 0);
-    this.axisInstancesMatrices.set(createXAxisInstanceTranslationMatrix(1), 16);
+    const gridSpacing = 0.2;
+    for (let i = 0; i < this.numAxisInstances; i++) {
+      const y = (i - this.numAxisInstances / 2) * gridSpacing;
+      this.axisInstancesMatrices.set(
+        createXAxisInstanceTranslationMatrix(y),
+        this.matrixFloatCount * i
+      );
+    }
 
     this.identity = mat4.create();
     mat4.identity(this.identity);
@@ -103,11 +109,7 @@ export class WebGpu {
     new Uint32Array(this.triangleMeshTypeBuffer.getMappedRange()).set([3]);
     this.triangleMeshTypeBuffer.unmap();
 
-    const numAxisInstances = 2;
-    const matrixFloatCount = 16; // 4x4 matrix
-    const matrixSize = 4 * matrixFloatCount;
-
-    const axisInstancesBufferSize = numAxisInstances * matrixSize;
+    const axisInstancesBufferSize = this.numAxisInstances * this.matrixSize;
     this.axisInstancesBuffer = device.createBuffer({
       label: "axis instances buffer",
       size: axisInstancesBufferSize,
@@ -243,6 +245,7 @@ export class WebGpu {
       this.camera,
       this.axisInstancesBuffer,
       this.axisInstancesMatrices,
+      this.numAxisInstances,
       this.identityBuffer,
       this.identity
     );
@@ -324,6 +327,7 @@ const render = (
 
   axisInstancesBuffer: GPUBuffer,
   axisInstancesMatrices: Float32Array,
+  numAxisInstances: number,
   identityBuffer: GPUBuffer,
   identityMatrix: mat4
 ) => {
@@ -342,7 +346,7 @@ const render = (
   // axes
   pass.setBindGroup(0, xAxisbindGroup);
   pass.setVertexBuffer(0, xAxisMesh.buffer);
-  pass.draw(6, 2);
+  pass.draw(6, numAxisInstances);
   pass.setBindGroup(0, yAxisbindGroup);
   pass.setVertexBuffer(0, yAxisMesh.buffer);
   pass.draw(6, 1);
@@ -487,13 +491,5 @@ const createMeshTypeUniformBuffer = (device: GPUDevice): GPUBuffer => {
 const createXAxisInstanceTranslationMatrix = (y: number): mat4 => {
   const m = mat4.create();
   mat4.fromTranslation(m, vec3.fromValues(0, y, 0));
-  //   mat4.fromTranslation(m, vec3.fromValues(100, 100, 100));
-  console.log("!! m: %o", m);
-
-  //   const transposed = mat4.create();
-  //   mat4.transpose(transposed, m);
-
-  //   return mat4.identity(m);
   return m;
-  //   return transposed;
 };
