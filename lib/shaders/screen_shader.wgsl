@@ -9,7 +9,6 @@ struct OurVertexShaderOutput {
 @binding(3) @group(0) var<uniform> meshType: u32;
 @binding(4) @group(0) var<uniform> axes_transforms: array<mat4x4f, 2>;
 @binding(5) @group(0) var<uniform> identity: mat4x4f; // for debugging sometimes..
-@binding(6) @group(0) var<uniform> instance1Buffer: mat4x4f;
 
 @vertex
 fn vs_main(

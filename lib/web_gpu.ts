@@ -50,9 +50,6 @@ export class WebGpu {
   identityBuffer: GPUBuffer | null = null;
   identity: mat4;
 
-  instance1Buffer: GPUBuffer | null = null;
-  instance1Matrix: mat4;
-
   constructor(canvas: HTMLCanvasElement, cameraPos: vec3) {
     console.log(this.eulersMatrix);
 
@@ -67,8 +64,6 @@ export class WebGpu {
 
     this.identity = mat4.create();
     mat4.identity(this.identity);
-
-    this.instance1Matrix = createXAxisInstanceTranslationMatrix(1.2);
   }
 
   init = async (navigator: Navigator) => {
@@ -124,11 +119,6 @@ export class WebGpu {
       size: 64, // 4 x 4 matrix x 4 bytes per float
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
-    this.instance1Buffer = device.createBuffer({
-      label: "instance 1 buffer",
-      size: 64, // 4 x 4 matrix x 4 bytes per float
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-    });
 
     this.triangleMesh = new TriangleMesh(this.device);
     this.xAxisMesh = new Mesh("x axis mesh", this.device, xAxisVertices());
@@ -146,8 +136,7 @@ export class WebGpu {
       this.cameraBuffer,
       this.triangleMeshTypeBuffer,
       this.axisInstancesBuffer,
-      this.identityBuffer,
-      this.instance1Buffer
+      this.identityBuffer
     );
 
     this.xAxisBindGroup = createBindGroup(
@@ -159,8 +148,7 @@ export class WebGpu {
       this.cameraBuffer,
       this.xAxisMeshTypeBuffer,
       this.axisInstancesBuffer,
-      this.identityBuffer,
-      this.instance1Buffer
+      this.identityBuffer
     );
 
     this.yAxisBindGroup = createBindGroup(
@@ -172,8 +160,7 @@ export class WebGpu {
       this.cameraBuffer,
       this.yAxisMeshTypeBuffer,
       this.axisInstancesBuffer,
-      this.identityBuffer,
-      this.instance1Buffer
+      this.identityBuffer
     );
 
     this.zAxisBindGroup = createBindGroup(
@@ -185,8 +172,7 @@ export class WebGpu {
       this.cameraBuffer,
       this.zAxisMeshTypeBuffer,
       this.axisInstancesBuffer,
-      this.identityBuffer,
-      this.instance1Buffer
+      this.identityBuffer
     );
 
     this.pipeline = createPipeline(
@@ -231,8 +217,7 @@ export class WebGpu {
         this.projectionBuffer &&
         this.cameraBuffer &&
         this.axisInstancesBuffer &&
-        this.identityBuffer &&
-        this.instance1Buffer
+        this.identityBuffer
       )
     ) {
       return;
@@ -259,9 +244,7 @@ export class WebGpu {
       this.axisInstancesBuffer,
       this.axisInstancesMatrices,
       this.identityBuffer,
-      this.identity,
-      this.instance1Buffer,
-      this.instance1Matrix
+      this.identity
     );
   };
 
@@ -342,9 +325,7 @@ const render = (
   axisInstancesBuffer: GPUBuffer,
   axisInstancesMatrices: Float32Array,
   identityBuffer: GPUBuffer,
-  identityMatrix: mat4,
-  instance1Buffer: GPUBuffer,
-  instance1Matrix: mat4
+  identityMatrix: mat4
 ) => {
   camera.update();
 
@@ -378,10 +359,6 @@ const render = (
   device.queue.writeBuffer(projectionBuffer, 0, <ArrayBuffer>projection);
   device.queue.writeBuffer(cameraBuffer, 0, <ArrayBuffer>camera.matrix());
   device.queue.writeBuffer(identityBuffer, 0, <ArrayBuffer>identityMatrix);
-  device.queue.writeBuffer(instance1Buffer, 0, <ArrayBuffer>instance1Matrix);
-
-  console.log("!! instance1Matrix:" + instance1Matrix);
-  console.log("!! axisInstancesMatrices:" + axisInstancesMatrices);
   device.queue.writeBuffer(
     axisInstancesBuffer,
     0,
@@ -415,7 +392,6 @@ const createBindGroupLayout = (device: GPUDevice): GPUBindGroupLayout => {
       { binding: 3, visibility: GPUShaderStage.VERTEX, buffer: {} },
       { binding: 4, visibility: GPUShaderStage.VERTEX, buffer: {} },
       { binding: 5, visibility: GPUShaderStage.VERTEX, buffer: {} },
-      { binding: 6, visibility: GPUShaderStage.VERTEX, buffer: {} },
     ],
   });
 };
@@ -429,8 +405,7 @@ const createBindGroup = (
   cameraBuffer: GPUBuffer,
   meshTypeBuffer: GPUBuffer,
   axisInstancesBuffer: GPUBuffer,
-  identityBuffer: GPUBuffer,
-  instance1Buffer: GPUBuffer
+  identityBuffer: GPUBuffer
 ): GPUBindGroup => {
   return device.createBindGroup({
     label: label,
@@ -442,7 +417,6 @@ const createBindGroup = (
       { binding: 3, resource: { buffer: meshTypeBuffer } },
       { binding: 4, resource: { buffer: axisInstancesBuffer } },
       { binding: 5, resource: { buffer: identityBuffer } },
-      { binding: 6, resource: { buffer: instance1Buffer } },
     ],
   });
 };
