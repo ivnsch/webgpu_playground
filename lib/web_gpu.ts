@@ -61,9 +61,9 @@ export class WebGpu {
 
     const gridSpacing = 0.2;
     for (let i = 0; i < this.numAxisInstances; i++) {
-      const y = (i - this.numAxisInstances / 2) * gridSpacing;
+      const z = (i - this.numAxisInstances / 2) * gridSpacing;
       this.axisInstancesMatrices.set(
-        createXAxisInstanceTranslationMatrix(y),
+        createY0PlaneHorizontalLinesTranslationMatrix(z),
         this.matrixFloatCount * i
       );
     }
@@ -488,8 +488,14 @@ const createMeshTypeUniformBuffer = (device: GPUDevice): GPUBuffer => {
   });
 };
 
-const createXAxisInstanceTranslationMatrix = (y: number): mat4 => {
+const createZ0PlaneHorizontalLinesTranslationMatrix = (y: number): mat4 => {
   const m = mat4.create();
   mat4.fromTranslation(m, vec3.fromValues(0, y, 0));
+  return m;
+};
+
+const createY0PlaneHorizontalLinesTranslationMatrix = (z: number): mat4 => {
+  const m = mat4.create();
+  mat4.fromTranslation(m, vec3.fromValues(0, 0, z));
   return m;
 };
