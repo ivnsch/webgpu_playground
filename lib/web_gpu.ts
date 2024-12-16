@@ -41,11 +41,19 @@ export class WebGpu {
   triangleMeshTypeBuffer: GPUBuffer | null = null;
 
   xAxesInstancesBuffer: GPUBuffer | null = null;
-  xAxesNumInstances = 20; // remember to set this in axes_transforms in the shader too
+  xAxesNumInstances = 20; // remember to set this in x_axes_transforms in the shader too
   xAxesMatrixFloatCount = 16; // 4x4 matrix
   xAxesMatrixSize = 4 * this.xAxesMatrixFloatCount;
   xAxesInstancesMatrices = new Float32Array(
     this.xAxesMatrixFloatCount * this.xAxesNumInstances
+  );
+
+  zAxesInstancesBuffer: GPUBuffer | null = null;
+  zAxesNumInstances = 20; // remember to set this in z_axes_transforms in the shader too
+  zAxesMatrixFloatCount = 16; // 4x4 matrix
+  zAxesMatrixSize = 4 * this.zAxesMatrixFloatCount;
+  zAxesInstancesMatrices = new Float32Array(
+    this.zAxesMatrixFloatCount * this.zAxesNumInstances
   );
 
   identityBuffer: GPUBuffer | null = null;
@@ -60,12 +68,21 @@ export class WebGpu {
     this.projection = createProjectionMatrix();
     this.camera = new Camera(cameraPos);
 
-    const gridSpacing = 0.2;
+    const xGridSpacing = 0.2;
     for (let i = 0; i < this.xAxesNumInstances; i++) {
-      const z = (i - this.xAxesNumInstances / 2) * gridSpacing;
+      const z = (i - this.xAxesNumInstances / 2) * xGridSpacing;
       this.xAxesInstancesMatrices.set(
         createY0PlaneHorizontalLinesTranslationMatrix(z),
         this.xAxesMatrixFloatCount * i
+      );
+    }
+
+    const zGridSpacing = 0.2;
+    for (let i = 0; i < this.zAxesNumInstances; i++) {
+      const x = (i - this.zAxesNumInstances / 2) * zGridSpacing;
+      this.zAxesInstancesMatrices.set(
+        createY0PlaneVerticalLinesTranslationMatrix(x),
+        this.zAxesMatrixFloatCount * i
       );
     }
 
@@ -110,11 +127,18 @@ export class WebGpu {
     new Uint32Array(this.triangleMeshTypeBuffer.getMappedRange()).set([3]);
     this.triangleMeshTypeBuffer.unmap();
 
-    const axisInstancesBufferSize =
+    const xAxesInstancesBufferSize =
       this.xAxesNumInstances * this.xAxesMatrixSize;
     this.xAxesInstancesBuffer = device.createBuffer({
-      label: "axis instances buffer",
-      size: axisInstancesBufferSize,
+      label: "x axes instances buffer",
+      size: xAxesInstancesBufferSize,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
+    const zAxesInstancesBufferSize =
+      this.zAxesNumInstances * this.zAxesMatrixSize;
+    this.zAxesInstancesBuffer = device.createBuffer({
+      label: "z axes instances buffer",
+      size: zAxesInstancesBufferSize,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
@@ -140,6 +164,7 @@ export class WebGpu {
       this.cameraBuffer,
       this.triangleMeshTypeBuffer,
       this.xAxesInstancesBuffer,
+      this.zAxesInstancesBuffer,
       this.identityBuffer
     );
 
@@ -152,6 +177,7 @@ export class WebGpu {
       this.cameraBuffer,
       this.xAxisMeshTypeBuffer,
       this.xAxesInstancesBuffer,
+      this.zAxesInstancesBuffer,
       this.identityBuffer
     );
 
@@ -164,6 +190,7 @@ export class WebGpu {
       this.cameraBuffer,
       this.yAxisMeshTypeBuffer,
       this.xAxesInstancesBuffer,
+      this.zAxesInstancesBuffer,
       this.identityBuffer
     );
 
@@ -176,6 +203,7 @@ export class WebGpu {
       this.cameraBuffer,
       this.zAxisMeshTypeBuffer,
       this.xAxesInstancesBuffer,
+      this.zAxesInstancesBuffer,
       this.identityBuffer
     );
 
@@ -221,6 +249,7 @@ export class WebGpu {
         this.projectionBuffer &&
         this.cameraBuffer &&
         this.xAxesInstancesBuffer &&
+        this.zAxesInstancesBuffer &&
         this.identityBuffer
       )
     ) {
@@ -247,7 +276,10 @@ export class WebGpu {
       this.camera,
       this.xAxesInstancesBuffer,
       this.xAxesInstancesMatrices,
+      this.zAxesInstancesBuffer,
+      this.zAxesInstancesMatrices,
       this.xAxesNumInstances,
+      this.zAxesNumInstances,
       this.identityBuffer,
       this.identity
     );
@@ -327,9 +359,12 @@ const render = (
   cameraBuffer: GPUBuffer,
   camera: Camera,
 
-  axisInstancesBuffer: GPUBuffer,
-  axisInstancesMatrices: Float32Array,
-  numAxisInstances: number,
+  xAxesInstancesBuffer: GPUBuffer,
+  xAxesInstancesMatrices: Float32Array,
+  zAxesInstancesBuffer: GPUBuffer,
+  zAxesInstancesMatrices: Float32Array,
+  xAxisNumInstances: number,
+  zAxisNumInstances: number,
   identityBuffer: GPUBuffer,
   identityMatrix: mat4
 ) => {
@@ -348,13 +383,13 @@ const render = (
   // axes
   pass.setBindGroup(0, xAxisbindGroup);
   pass.setVertexBuffer(0, xAxisMesh.buffer);
-  pass.draw(6, numAxisInstances);
+  pass.draw(6, xAxisNumInstances);
   pass.setBindGroup(0, yAxisbindGroup);
   pass.setVertexBuffer(0, yAxisMesh.buffer);
   pass.draw(6, 1);
   pass.setBindGroup(0, zAxisbindGroup);
   pass.setVertexBuffer(0, zAxisMesh.buffer);
-  pass.draw(6, 1);
+  pass.draw(6, zAxisNumInstances);
 
   pass.end();
 
@@ -366,11 +401,18 @@ const render = (
   device.queue.writeBuffer(cameraBuffer, 0, <ArrayBuffer>camera.matrix());
   device.queue.writeBuffer(identityBuffer, 0, <ArrayBuffer>identityMatrix);
   device.queue.writeBuffer(
-    axisInstancesBuffer,
+    xAxesInstancesBuffer,
     0,
-    axisInstancesMatrices.buffer,
-    axisInstancesMatrices.byteOffset,
-    axisInstancesMatrices.byteLength
+    xAxesInstancesMatrices.buffer,
+    xAxesInstancesMatrices.byteOffset,
+    xAxesInstancesMatrices.byteLength
+  );
+  device.queue.writeBuffer(
+    zAxesInstancesBuffer,
+    0,
+    zAxesInstancesMatrices.buffer,
+    zAxesInstancesMatrices.byteOffset,
+    zAxesInstancesMatrices.byteLength
   );
 };
 
@@ -398,6 +440,7 @@ const createBindGroupLayout = (device: GPUDevice): GPUBindGroupLayout => {
       { binding: 3, visibility: GPUShaderStage.VERTEX, buffer: {} },
       { binding: 4, visibility: GPUShaderStage.VERTEX, buffer: {} },
       { binding: 5, visibility: GPUShaderStage.VERTEX, buffer: {} },
+      { binding: 6, visibility: GPUShaderStage.VERTEX, buffer: {} },
     ],
   });
 };
@@ -410,7 +453,8 @@ const createBindGroup = (
   projectionBuffer: GPUBuffer,
   cameraBuffer: GPUBuffer,
   meshTypeBuffer: GPUBuffer,
-  axisInstancesBuffer: GPUBuffer,
+  xAxisInstancesBuffer: GPUBuffer,
+  zAxisInstancesBuffer: GPUBuffer,
   identityBuffer: GPUBuffer
 ): GPUBindGroup => {
   return device.createBindGroup({
@@ -421,8 +465,9 @@ const createBindGroup = (
       { binding: 1, resource: { buffer: cameraBuffer } },
       { binding: 2, resource: { buffer: rotBuffer } },
       { binding: 3, resource: { buffer: meshTypeBuffer } },
-      { binding: 4, resource: { buffer: axisInstancesBuffer } },
-      { binding: 5, resource: { buffer: identityBuffer } },
+      { binding: 4, resource: { buffer: xAxisInstancesBuffer } },
+      { binding: 5, resource: { buffer: zAxisInstancesBuffer } },
+      { binding: 6, resource: { buffer: identityBuffer } },
     ],
   });
 };
@@ -499,5 +544,11 @@ const createZ0PlaneHorizontalLinesTranslationMatrix = (y: number): mat4 => {
 const createY0PlaneHorizontalLinesTranslationMatrix = (z: number): mat4 => {
   const m = mat4.create();
   mat4.fromTranslation(m, vec3.fromValues(0, 0, z));
+  return m;
+};
+
+const createY0PlaneVerticalLinesTranslationMatrix = (x: number): mat4 => {
+  const m = mat4.create();
+  mat4.fromTranslation(m, vec3.fromValues(x, 0, 0));
   return m;
 };
