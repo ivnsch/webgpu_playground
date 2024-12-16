@@ -40,13 +40,14 @@ export class WebGpu {
   zAxisMeshTypeBuffer: GPUBuffer | null = null;
   triangleMeshTypeBuffer: GPUBuffer | null = null;
 
-  axisInstancesBuffer: GPUBuffer | null = null;
-  numAxisInstances = 20; // remember to set this in axes_transforms in the shader too
-  matrixFloatCount = 16; // 4x4 matrix
-  matrixSize = 4 * this.matrixFloatCount;
-  axisInstancesMatrices = new Float32Array(
-    this.matrixFloatCount * this.numAxisInstances
+  xAxesInstancesBuffer: GPUBuffer | null = null;
+  xAxesNumInstances = 20; // remember to set this in axes_transforms in the shader too
+  xAxesMatrixFloatCount = 16; // 4x4 matrix
+  xAxesMatrixSize = 4 * this.xAxesMatrixFloatCount;
+  xAxesInstancesMatrices = new Float32Array(
+    this.xAxesMatrixFloatCount * this.xAxesNumInstances
   );
+
   identityBuffer: GPUBuffer | null = null;
   identity: mat4;
 
@@ -60,11 +61,11 @@ export class WebGpu {
     this.camera = new Camera(cameraPos);
 
     const gridSpacing = 0.2;
-    for (let i = 0; i < this.numAxisInstances; i++) {
-      const z = (i - this.numAxisInstances / 2) * gridSpacing;
-      this.axisInstancesMatrices.set(
+    for (let i = 0; i < this.xAxesNumInstances; i++) {
+      const z = (i - this.xAxesNumInstances / 2) * gridSpacing;
+      this.xAxesInstancesMatrices.set(
         createY0PlaneHorizontalLinesTranslationMatrix(z),
-        this.matrixFloatCount * i
+        this.xAxesMatrixFloatCount * i
       );
     }
 
@@ -109,8 +110,9 @@ export class WebGpu {
     new Uint32Array(this.triangleMeshTypeBuffer.getMappedRange()).set([3]);
     this.triangleMeshTypeBuffer.unmap();
 
-    const axisInstancesBufferSize = this.numAxisInstances * this.matrixSize;
-    this.axisInstancesBuffer = device.createBuffer({
+    const axisInstancesBufferSize =
+      this.xAxesNumInstances * this.xAxesMatrixSize;
+    this.xAxesInstancesBuffer = device.createBuffer({
       label: "axis instances buffer",
       size: axisInstancesBufferSize,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
@@ -137,7 +139,7 @@ export class WebGpu {
       this.projectionBuffer,
       this.cameraBuffer,
       this.triangleMeshTypeBuffer,
-      this.axisInstancesBuffer,
+      this.xAxesInstancesBuffer,
       this.identityBuffer
     );
 
@@ -149,7 +151,7 @@ export class WebGpu {
       this.projectionBuffer,
       this.cameraBuffer,
       this.xAxisMeshTypeBuffer,
-      this.axisInstancesBuffer,
+      this.xAxesInstancesBuffer,
       this.identityBuffer
     );
 
@@ -161,7 +163,7 @@ export class WebGpu {
       this.projectionBuffer,
       this.cameraBuffer,
       this.yAxisMeshTypeBuffer,
-      this.axisInstancesBuffer,
+      this.xAxesInstancesBuffer,
       this.identityBuffer
     );
 
@@ -173,7 +175,7 @@ export class WebGpu {
       this.projectionBuffer,
       this.cameraBuffer,
       this.zAxisMeshTypeBuffer,
-      this.axisInstancesBuffer,
+      this.xAxesInstancesBuffer,
       this.identityBuffer
     );
 
@@ -218,7 +220,7 @@ export class WebGpu {
         this.eulersMatrix &&
         this.projectionBuffer &&
         this.cameraBuffer &&
-        this.axisInstancesBuffer &&
+        this.xAxesInstancesBuffer &&
         this.identityBuffer
       )
     ) {
@@ -243,9 +245,9 @@ export class WebGpu {
       this.projection,
       this.cameraBuffer,
       this.camera,
-      this.axisInstancesBuffer,
-      this.axisInstancesMatrices,
-      this.numAxisInstances,
+      this.xAxesInstancesBuffer,
+      this.xAxesInstancesMatrices,
+      this.xAxesNumInstances,
       this.identityBuffer,
       this.identity
     );
