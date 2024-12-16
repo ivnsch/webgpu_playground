@@ -8,7 +8,7 @@ struct OurVertexShaderOutput {
 @binding(2) @group(0) var<uniform> rotation: mat4x4<f32>;
 @binding(3) @group(0) var<uniform> meshType: u32;
 @binding(4) @group(0) var<uniform> axes_transforms: array<mat4x4f, 2>;
-@binding(5) @group(0) var<uniform> identity: mat4x4f;
+@binding(5) @group(0) var<uniform> identity: mat4x4f; // for debugging sometimes..
 @binding(6) @group(0) var<uniform> instance1Buffer: mat4x4f;
 
 @vertex
@@ -25,15 +25,8 @@ fn vs_main(
 
     if (meshType == 0) { // x axis
         // position instance
-        // transformed = axes_transforms[instance_idx] * vertex_4;
-        // transformed = identity * vertex_4;
-        if instance_idx == 0 {
-            transformed = instance1Buffer * vertex_4;
-            output.color = vec3<f32>(1.0, 0.0, 1.0); // magenta
-        } else {
-            transformed = vertex_4;
-            output.color = vec3<f32>(0.0, 0.0, 1.0); // blue
-        }
+        transformed = axes_transforms[instance_idx] * vertex_4;
+        output.color = vec3<f32>(0.0, 0.0, 1.0); // blue
         // don't transform axis
     } else if (meshType == 1) { // y axis
         transformed = vertex_4;

@@ -47,8 +47,6 @@ export class WebGpu {
   axisInstancesMatrices = new Float32Array(
     this.matrixFloatCount * this.numAxisInstances
   );
-  //   axisModelMatrices = new Array<mat4>(this.numAxisInstances);
-
   identityBuffer: GPUBuffer | null = null;
   identity: mat4;
 
@@ -65,7 +63,7 @@ export class WebGpu {
     this.camera = new Camera(cameraPos);
 
     this.axisInstancesMatrices.set(createXAxisInstanceTranslationMatrix(0), 0);
-    this.axisInstancesMatrices.set(createXAxisInstanceTranslationMatrix(0), 1);
+    this.axisInstancesMatrices.set(createXAxisInstanceTranslationMatrix(1), 16);
 
     this.identity = mat4.create();
     mat4.identity(this.identity);
@@ -115,7 +113,6 @@ export class WebGpu {
     const matrixSize = 4 * matrixFloatCount;
 
     const axisInstancesBufferSize = numAxisInstances * matrixSize;
-    console.log("!! axisInstancesBufferSize: %o", axisInstancesBufferSize);
     this.axisInstancesBuffer = device.createBuffer({
       label: "axis instances buffer",
       size: axisInstancesBufferSize,
@@ -383,14 +380,15 @@ const render = (
   device.queue.writeBuffer(identityBuffer, 0, <ArrayBuffer>identityMatrix);
   device.queue.writeBuffer(instance1Buffer, 0, <ArrayBuffer>instance1Matrix);
 
-  console.log("!! axisInstancesBuffer:" + axisInstancesBuffer);
-  //   device.queue.writeBuffer(
-  //     axisInstancesBuffer,
-  //     0,
-  //     axisInstancesMatrices.buffer,
-  //     axisInstancesMatrices.byteOffset,
-  //     axisInstancesMatrices.byteLength
-  //   );
+  console.log("!! instance1Matrix:" + instance1Matrix);
+  console.log("!! axisInstancesMatrices:" + axisInstancesMatrices);
+  device.queue.writeBuffer(
+    axisInstancesBuffer,
+    0,
+    axisInstancesMatrices.buffer,
+    axisInstancesMatrices.byteOffset,
+    axisInstancesMatrices.byteLength
+  );
 };
 
 const createRenderPassDescriptor = (view: GPUTextureView): any => {
