@@ -38,8 +38,11 @@ fn vs_main(
     } else if (meshType == 3) { // triangle
         output.color = vec3<f32>(1.0, 0.0, 0.0); // red
         transformed = rotation * vertex_4;
-    } else { // unexpected
+    } else if (meshType == 4) { // triangle
         output.color = vec3<f32>(1.0, 1.0, 0.0); // yellow
+        transformed = rotation * vertex_4;
+    } else { // unexpected
+        output.color = vec3<f32>(0.0, 0.0, 0.0); // black
     }
 
     transformed = projection * camera * transformed;

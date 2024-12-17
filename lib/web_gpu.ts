@@ -5,6 +5,7 @@ import my_shader from "./shaders/screen_shader.wgsl";
 import { Camera } from "./camera";
 import { Mesh } from "./mesh";
 import { xAxisVertices, yAxisVertices, zAxisVertices } from "./axis_mesh";
+import { CubeMesh } from "./cube_mesh";
 
 export class WebGpu {
   adapter: GPUAdapter | null = null;
@@ -17,6 +18,7 @@ export class WebGpu {
   renderPassDescriptor: GPURenderPassDescriptor | null = null;
 
   triangleMesh: TriangleMesh | null = null;
+  cubeMesh: CubeMesh | null = null;
   xAxisMesh: Mesh | null = null;
   yAxisMesh: Mesh | null = null;
   zAxisMesh: Mesh | null = null;
@@ -25,6 +27,7 @@ export class WebGpu {
   xAxisBindGroup: GPUBindGroup | null = null;
   yAxisBindGroup: GPUBindGroup | null = null;
   zAxisBindGroup: GPUBindGroup | null = null;
+  cubeBindGroup: GPUBindGroup | null = null;
 
   rotBuffer: GPUBuffer | null = null;
   eulersMatrix: mat4 | null = createIdentityMatrix();
@@ -39,6 +42,7 @@ export class WebGpu {
   yAxisMeshTypeBuffer: GPUBuffer | null = null;
   zAxisMeshTypeBuffer: GPUBuffer | null = null;
   triangleMeshTypeBuffer: GPUBuffer | null = null;
+  cubeMeshTypeBuffer: GPUBuffer | null = null;
 
   xAxesInstancesBuffer: GPUBuffer | null = null;
   xAxesNumInstances = 20; // remember to set this in x_axes_transforms in the shader too
@@ -126,6 +130,9 @@ export class WebGpu {
     this.triangleMeshTypeBuffer = createMeshTypeUniformBuffer(device);
     new Uint32Array(this.triangleMeshTypeBuffer.getMappedRange()).set([3]);
     this.triangleMeshTypeBuffer.unmap();
+    this.cubeMeshTypeBuffer = createMeshTypeUniformBuffer(device);
+    new Uint32Array(this.cubeMeshTypeBuffer.getMappedRange()).set([4]);
+    this.cubeMeshTypeBuffer.unmap();
 
     const xAxesInstancesBufferSize =
       this.xAxesNumInstances * this.xAxesMatrixSize;
@@ -149,6 +156,7 @@ export class WebGpu {
     });
 
     this.triangleMesh = new TriangleMesh(this.device);
+    this.cubeMesh = new CubeMesh(this.device);
     this.xAxisMesh = new Mesh("x axis mesh", this.device, xAxisVertices());
     this.yAxisMesh = new Mesh("y axis mesh", this.device, yAxisVertices());
     this.zAxisMesh = new Mesh("z axis mesh", this.device, zAxisVertices());
@@ -163,6 +171,19 @@ export class WebGpu {
       this.projectionBuffer,
       this.cameraBuffer,
       this.triangleMeshTypeBuffer,
+      this.xAxesInstancesBuffer,
+      this.zAxesInstancesBuffer,
+      this.identityBuffer
+    );
+
+    this.cubeBindGroup = createBindGroup(
+      "cube bind group",
+      this.device,
+      bindGroupLayout,
+      this.rotBuffer,
+      this.projectionBuffer,
+      this.cameraBuffer,
+      this.cubeMeshTypeBuffer,
       this.xAxesInstancesBuffer,
       this.zAxesInstancesBuffer,
       this.identityBuffer
@@ -212,6 +233,7 @@ export class WebGpu {
       device,
       this.presentationFormat,
       this.triangleMesh,
+      this.cubeMesh,
       bindGroupLayout
     );
   };
@@ -240,7 +262,9 @@ export class WebGpu {
         this.yAxisMesh &&
         this.zAxisMesh &&
         this.triangleMesh &&
+        this.cubeMesh &&
         this.triangleBindGroup &&
+        this.cubeBindGroup &&
         this.xAxisBindGroup &&
         this.yAxisBindGroup &&
         this.zAxisBindGroup &&
@@ -264,7 +288,9 @@ export class WebGpu {
       this.yAxisMesh,
       this.zAxisMesh,
       this.triangleMesh,
+      this.cubeMesh,
       this.triangleBindGroup,
+      this.cubeBindGroup,
       this.xAxisBindGroup,
       this.yAxisBindGroup,
       this.zAxisBindGroup,
@@ -345,8 +371,10 @@ const render = (
   yAxisMesh: Mesh,
   zAxisMesh: Mesh,
   triangleMesh: TriangleMesh,
+  cubeMesh: CubeMesh,
 
   triangleBindGroup: GPUBindGroup,
+  cubeBindGroup: GPUBindGroup,
   xAxisbindGroup: GPUBindGroup,
   yAxisbindGroup: GPUBindGroup,
   zAxisbindGroup: GPUBindGroup,
@@ -379,6 +407,11 @@ const render = (
   pass.setBindGroup(0, triangleBindGroup);
   pass.setVertexBuffer(0, triangleMesh.buffer);
   pass.draw(3, 1);
+
+  // cube
+  pass.setBindGroup(0, cubeBindGroup);
+  pass.setVertexBuffer(0, cubeMesh.buffer);
+  pass.draw(36, 1);
 
   // axes
   pass.setBindGroup(0, xAxisbindGroup);
@@ -476,7 +509,8 @@ const createPipeline = (
   shader: string,
   device: GPUDevice,
   presentationFormat: GPUTextureFormat,
-  mesh: TriangleMesh,
+  triangleMesh: TriangleMesh,
+  cubeMesh: CubeMesh,
   bindGroupLayout: GPUBindGroupLayout
 ): GPURenderPipeline => {
   const layout = device.createPipelineLayout({
@@ -489,7 +523,7 @@ const createPipeline = (
     vertex: {
       module: device.createShaderModule({ code: shader }),
       entryPoint: "vs_main",
-      buffers: [mesh.bufferLayout],
+      buffers: [triangleMesh.bufferLayout],
     },
     fragment: {
       module: device.createShaderModule({ code: shader }),
