@@ -1,4 +1,4 @@
-import { mat4, vec2, vec3 } from "gl-matrix";
+import { mat4, vec3 } from "gl-matrix";
 import { setObjPitch, setObjYaw, setObjRoll, trans } from "./matrix_3x3";
 import { TriangleMesh } from "./triangle_mesh";
 import my_shader from "./shaders/screen_shader.wgsl";
@@ -238,7 +238,6 @@ export class WebGpu {
       device,
       this.presentationFormat,
       this.triangleMesh,
-      this.cubeMesh,
       bindGroupLayout,
       this.depthStencilResources.depthStencilState
     );
@@ -528,7 +527,6 @@ const createPipeline = (
   device: GPUDevice,
   presentationFormat: GPUTextureFormat,
   triangleMesh: TriangleMesh,
-  cubeMesh: CubeMesh,
   bindGroupLayout: GPUBindGroupLayout,
   depthStencilState: GPUDepthStencilState
 ): GPURenderPipeline => {
