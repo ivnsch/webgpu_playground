@@ -5,11 +5,12 @@ struct OurVertexShaderOutput {
 
 @binding(0) @group(0) var<uniform> projection: mat4x4<f32>;
 @binding(1) @group(0) var<uniform> camera: mat4x4<f32>;
-@binding(2) @group(0) var<uniform> rotation: mat4x4<f32>;
-@binding(3) @group(0) var<uniform> meshType: u32;
-@binding(4) @group(0) var<uniform> x_axes_transforms: array<mat4x4f, 20>;
-@binding(5) @group(0) var<uniform> z_axes_transforms: array<mat4x4f, 20>;
-@binding(6) @group(0) var<uniform> identity: mat4x4f; // for debugging sometimes..
+@binding(2) @group(0) var<uniform> rotation_triangle: mat4x4<f32>;
+@binding(3) @group(0) var<uniform> rotation_cube: mat4x4<f32>;
+@binding(4) @group(0) var<uniform> meshType: u32;
+@binding(5) @group(0) var<uniform> x_axes_transforms: array<mat4x4f, 20>;
+@binding(6) @group(0) var<uniform> z_axes_transforms: array<mat4x4f, 20>;
+@binding(7) @group(0) var<uniform> identity: mat4x4f; // for debugging sometimes..
 
 @vertex
 fn vs_main(
@@ -37,10 +38,10 @@ fn vs_main(
         // don't transform axis
     } else if (meshType == 3) { // triangle
         output.color = vec3<f32>(1.0, 0.0, 0.0); // red
-        transformed = rotation * vertex_4;
-    } else if (meshType == 4) { // triangle
+        transformed = rotation_triangle * vertex_4;
+    } else if (meshType == 4) { // cube
         output.color = vec3<f32>(1.0, 1.0, 0.0); // yellow
-        transformed = rotation * vertex_4;
+        transformed = rotation_cube * vertex_4;
     } else { // unexpected
         output.color = vec3<f32>(0.0, 0.0, 0.0); // black
     }

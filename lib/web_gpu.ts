@@ -30,8 +30,10 @@ export class WebGpu {
   zAxisBindGroup: GPUBindGroup | null = null;
   cubeBindGroup: GPUBindGroup | null = null;
 
-  rotBuffer: GPUBuffer | null = null;
-  eulersMatrix: mat4 | null = createIdentityMatrix();
+  triangleRotBuffer: GPUBuffer | null = null;
+  triangleEulersMatrix: mat4 | null = createIdentityMatrix();
+  cubeRotBuffer: GPUBuffer | null = null;
+  cubeEulersMatrix: mat4 | null = createIdentityMatrix();
 
   projectionBuffer: GPUBuffer | null = null;
   projection: mat4;
@@ -67,7 +69,7 @@ export class WebGpu {
   depthStencilResources: DepthBufferResources | null = null;
 
   constructor(canvas: HTMLCanvasElement, cameraPos: vec3) {
-    console.log(this.eulersMatrix);
+    console.log(this.triangleEulersMatrix);
 
     this.presentationFormat = "bgra8unorm";
     this.context = <GPUCanvasContext>canvas.getContext("webgpu");
@@ -116,7 +118,8 @@ export class WebGpu {
       format: this.presentationFormat,
     });
 
-    this.rotBuffer = createMatrixUniformBuffer(device);
+    this.triangleRotBuffer = createMatrixUniformBuffer(device);
+    this.cubeRotBuffer = createMatrixUniformBuffer(device);
     this.projectionBuffer = createMatrixUniformBuffer(device);
     this.cameraBuffer = createMatrixUniformBuffer(device);
 
@@ -170,7 +173,8 @@ export class WebGpu {
       "triangle bind group",
       this.device,
       bindGroupLayout,
-      this.rotBuffer,
+      this.triangleRotBuffer,
+      this.cubeRotBuffer,
       this.projectionBuffer,
       this.cameraBuffer,
       this.triangleMeshTypeBuffer,
@@ -183,7 +187,8 @@ export class WebGpu {
       "cube bind group",
       this.device,
       bindGroupLayout,
-      this.rotBuffer,
+      this.triangleRotBuffer,
+      this.cubeRotBuffer,
       this.projectionBuffer,
       this.cameraBuffer,
       this.cubeMeshTypeBuffer,
@@ -196,7 +201,8 @@ export class WebGpu {
       "x axis bind group",
       this.device,
       bindGroupLayout,
-      this.rotBuffer,
+      this.triangleRotBuffer,
+      this.cubeRotBuffer,
       this.projectionBuffer,
       this.cameraBuffer,
       this.xAxisMeshTypeBuffer,
@@ -209,7 +215,8 @@ export class WebGpu {
       "y axis bind group",
       this.device,
       bindGroupLayout,
-      this.rotBuffer,
+      this.triangleRotBuffer,
+      this.cubeRotBuffer,
       this.projectionBuffer,
       this.cameraBuffer,
       this.yAxisMeshTypeBuffer,
@@ -222,7 +229,8 @@ export class WebGpu {
       "z axis bind group",
       this.device,
       bindGroupLayout,
-      this.rotBuffer,
+      this.triangleRotBuffer,
+      this.cubeRotBuffer,
       this.projectionBuffer,
       this.cameraBuffer,
       this.zAxisMeshTypeBuffer,
@@ -281,8 +289,10 @@ export class WebGpu {
         this.xAxisBindGroup &&
         this.yAxisBindGroup &&
         this.zAxisBindGroup &&
-        this.rotBuffer &&
-        this.eulersMatrix &&
+        this.triangleRotBuffer &&
+        this.triangleEulersMatrix &&
+        this.cubeRotBuffer &&
+        this.cubeEulersMatrix &&
         this.projectionBuffer &&
         this.cameraBuffer &&
         this.xAxesInstancesBuffer &&
@@ -307,8 +317,10 @@ export class WebGpu {
       this.xAxisBindGroup,
       this.yAxisBindGroup,
       this.zAxisBindGroup,
-      this.rotBuffer,
-      this.eulersMatrix,
+      this.triangleRotBuffer,
+      this.triangleEulersMatrix,
+      this.cubeRotBuffer,
+      this.cubeEulersMatrix,
       this.projectionBuffer,
       this.projection,
       this.cameraBuffer,
@@ -324,11 +336,12 @@ export class WebGpu {
     );
   };
 
-  setObjEulers = (pitch: number, yaw: number, roll: number) => {
+  setTriangleEulers = (pitch: number, yaw: number, roll: number) => {
     if (!this.triangleMesh) return;
 
     // translate to origin
     const transVec = this.triangleMesh.translationToOrigin();
+    // const transVec = this.cubeMesh.translationToOrigin();
     const transMatrix = trans(transVec);
 
     // rotate
@@ -361,7 +374,8 @@ export class WebGpu {
     // gl-matrix and webgpu are both supposed to use column-major?
     // added it because noticed transposing fixes rotation (not rotating around center)
     // this.rotMatrix = rotations;
-    this.eulersMatrix = transposed;
+    this.triangleEulersMatrix = transposed;
+    // this.cubeEulersMatrix = transposed;
   };
 
   setCameraEulers = (pitch: number, yaw: number, roll: number) => {
@@ -392,8 +406,10 @@ const render = (
   yAxisbindGroup: GPUBindGroup,
   zAxisbindGroup: GPUBindGroup,
 
-  rotBuffer: GPUBuffer,
-  rotMatrix: mat4,
+  triangleRotBuffer: GPUBuffer,
+  triangleRotMatrix: mat4,
+  cubeRotBuffer: GPUBuffer,
+  cubeRotMatrix: mat4,
 
   projectionBuffer: GPUBuffer,
   projection: mat4,
@@ -442,7 +458,12 @@ const render = (
   const commandBuffer = encoder.finish();
   device.queue.submit([commandBuffer]);
 
-  device.queue.writeBuffer(rotBuffer, 0, <ArrayBuffer>rotMatrix);
+  device.queue.writeBuffer(
+    triangleRotBuffer,
+    0,
+    <ArrayBuffer>triangleRotMatrix
+  );
+  device.queue.writeBuffer(cubeRotBuffer, 0, <ArrayBuffer>cubeRotMatrix);
   device.queue.writeBuffer(projectionBuffer, 0, <ArrayBuffer>projection);
   device.queue.writeBuffer(cameraBuffer, 0, <ArrayBuffer>camera.matrix());
   device.queue.writeBuffer(identityBuffer, 0, <ArrayBuffer>identityMatrix);
@@ -491,6 +512,7 @@ const createBindGroupLayout = (device: GPUDevice): GPUBindGroupLayout => {
       { binding: 4, visibility: GPUShaderStage.VERTEX, buffer: {} },
       { binding: 5, visibility: GPUShaderStage.VERTEX, buffer: {} },
       { binding: 6, visibility: GPUShaderStage.VERTEX, buffer: {} },
+      { binding: 7, visibility: GPUShaderStage.VERTEX, buffer: {} },
     ],
   });
 };
@@ -499,7 +521,8 @@ const createBindGroup = (
   label: string,
   device: GPUDevice,
   bindGroupLayout: GPUBindGroupLayout,
-  rotBuffer: GPUBuffer,
+  triangleRotBuffer: GPUBuffer,
+  cubeRotBuffer: GPUBuffer,
   projectionBuffer: GPUBuffer,
   cameraBuffer: GPUBuffer,
   meshTypeBuffer: GPUBuffer,
@@ -513,11 +536,12 @@ const createBindGroup = (
     entries: [
       { binding: 0, resource: { buffer: projectionBuffer } },
       { binding: 1, resource: { buffer: cameraBuffer } },
-      { binding: 2, resource: { buffer: rotBuffer } },
-      { binding: 3, resource: { buffer: meshTypeBuffer } },
-      { binding: 4, resource: { buffer: xAxisInstancesBuffer } },
-      { binding: 5, resource: { buffer: zAxisInstancesBuffer } },
-      { binding: 6, resource: { buffer: identityBuffer } },
+      { binding: 2, resource: { buffer: triangleRotBuffer } },
+      { binding: 3, resource: { buffer: cubeRotBuffer } },
+      { binding: 4, resource: { buffer: meshTypeBuffer } },
+      { binding: 5, resource: { buffer: xAxisInstancesBuffer } },
+      { binding: 6, resource: { buffer: zAxisInstancesBuffer } },
+      { binding: 7, resource: { buffer: identityBuffer } },
     ],
   });
 };
