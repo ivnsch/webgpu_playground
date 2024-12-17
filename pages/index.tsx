@@ -2,6 +2,7 @@ import Head from "next/head";
 import { useEffect, useRef, useState } from "react";
 import styles from "../styles/Home.module.css";
 import { App } from "../lib/app";
+import { CANVAS_HEIGHT, CANVAS_WIDTH } from "../lib/constants";
 
 export default function Home() {
   const canvasRef = useRef(null);
@@ -24,7 +25,11 @@ export default function Home() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <main>
-        <canvas width="800" height="600" ref={canvasRef}></canvas>
+        <canvas
+          width={CANVAS_WIDTH}
+          height={CANVAS_HEIGHT}
+          ref={canvasRef}
+        ></canvas>
       </main>
     </div>
   );

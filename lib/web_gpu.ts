@@ -1,4 +1,4 @@
-import { mat4, vec3 } from "gl-matrix";
+import { mat4, vec2, vec3 } from "gl-matrix";
 import { setObjPitch, setObjYaw, setObjRoll, trans } from "./matrix_3x3";
 import { TriangleMesh } from "./triangle_mesh";
 import my_shader from "./shaders/screen_shader.wgsl";
@@ -6,6 +6,7 @@ import { Camera } from "./camera";
 import { Mesh } from "./mesh";
 import { xAxisVertices, yAxisVertices, zAxisVertices } from "./axis_mesh";
 import { CubeMesh } from "./cube_mesh";
+import { CANVAS_HEIGHT, CANVAS_WIDTH } from "./constants";
 
 export class WebGpu {
   adapter: GPUAdapter | null = null;
@@ -62,6 +63,8 @@ export class WebGpu {
 
   identityBuffer: GPUBuffer | null = null;
   identity: mat4;
+
+  depthStencilResources: DepthBufferResources | null = null;
 
   constructor(canvas: HTMLCanvasElement, cameraPos: vec3) {
     console.log(this.eulersMatrix);
@@ -228,13 +231,16 @@ export class WebGpu {
       this.identityBuffer
     );
 
+    this.depthStencilResources = makeDepthBufferResources(device);
+
     this.pipeline = createPipeline(
       my_shader,
       device,
       this.presentationFormat,
       this.triangleMesh,
       this.cubeMesh,
-      bindGroupLayout
+      bindGroupLayout,
+      this.depthStencilResources.depthStencilState
     );
   };
 
@@ -242,16 +248,24 @@ export class WebGpu {
     return this.context.getCurrentTexture().createView();
   };
 
-  private initRenderPassDescriptor = (): any => {
+  private initRenderPassDescriptor = (
+    depthStencilAttachment: GPURenderPassDepthStencilAttachment
+  ) => {
     const descriptor = createRenderPassDescriptor(
-      this.createCurrentTextureView()
+      this.createCurrentTextureView(),
+      depthStencilAttachment
     );
     this.renderPassDescriptor = descriptor;
   };
 
   render = () => {
+    if (!this.depthStencilResources) {
+      return;
+    }
     // TODO does this really have to be inialized in render?
-    this.initRenderPassDescriptor();
+    this.initRenderPassDescriptor(
+      this.depthStencilResources.depthStencilAttachment
+    );
 
     if (
       !(
@@ -449,7 +463,10 @@ const render = (
   );
 };
 
-const createRenderPassDescriptor = (view: GPUTextureView): any => {
+const createRenderPassDescriptor = (
+  view: GPUTextureView,
+  depthStencilAttachment: GPURenderPassDepthStencilAttachment
+): GPURenderPassDescriptor => {
   return {
     label: "our basic canvas renderPass",
     colorAttachments: [
@@ -460,6 +477,7 @@ const createRenderPassDescriptor = (view: GPUTextureView): any => {
         storeOp: "store",
       },
     ],
+    depthStencilAttachment: depthStencilAttachment,
   };
 };
 
@@ -511,7 +529,8 @@ const createPipeline = (
   presentationFormat: GPUTextureFormat,
   triangleMesh: TriangleMesh,
   cubeMesh: CubeMesh,
-  bindGroupLayout: GPUBindGroupLayout
+  bindGroupLayout: GPUBindGroupLayout,
+  depthStencilState: GPUDepthStencilState
 ): GPURenderPipeline => {
   const layout = device.createPipelineLayout({
     bindGroupLayouts: [bindGroupLayout],
@@ -533,7 +552,60 @@ const createPipeline = (
     primitive: {
       topology: "triangle-list",
     },
+    depthStencil: depthStencilState,
   });
+};
+
+const makeDepthBufferResources = (device: GPUDevice): DepthBufferResources => {
+  const depthStencilState = {
+    format: "depth24plus-stencil8",
+    depthWriteEnabled: true,
+    depthCompare: "less-equal",
+  };
+
+  const size: GPUExtent3D = {
+    width: CANVAS_WIDTH,
+    height: CANVAS_HEIGHT,
+    depthOrArrayLayers: 1,
+  };
+
+  const depthBufferDescriptor: GPUTextureDescriptor = {
+    size: size,
+    format: "depth24plus-stencil8",
+    usage: GPUTextureUsage.RENDER_ATTACHMENT,
+  };
+
+  const depthStencilBuffer = device.createTexture(depthBufferDescriptor);
+
+  const viewDescriptor: GPUTextureViewDescriptor = {
+    format: "depth24plus-stencil8",
+    dimension: "2d",
+    aspect: "all",
+  };
+  const depthStencilView = depthStencilBuffer.createView();
+
+  const depthStencilAttachment = {
+    view: depthStencilView,
+    depthClearValue: 1.0,
+    depthLoadOp: "clear",
+    depthStoreOp: "store",
+    stencilLoadOp: "clear",
+    stencilStoreOp: "discard",
+  };
+
+  return {
+    depthStencilState,
+    depthStencilBuffer,
+    depthStencilView,
+    depthStencilAttachment,
+  };
+};
+
+type DepthBufferResources = {
+  depthStencilState: GPUDepthStencilState;
+  depthStencilBuffer: GPUTexture;
+  depthStencilView: GPUTextureView;
+  depthStencilAttachment: GPURenderPassDepthStencilAttachment;
 };
 
 const createProjectionMatrix = () => {
