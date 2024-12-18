@@ -1,3 +1,4 @@
+import { mat4 } from "gl-matrix";
 import { Entity } from "./entity";
 import { Mesh } from "./mesh";
 import { createY0PlaneHorizontalLinesTranslationMatrix } from "./web_gpu";
@@ -18,23 +19,24 @@ export class AxisLines extends Entity {
   constructor(
     device: GPUDevice,
     instancesBufferLabel: string,
-    vertices: number[]
+    vertices: number[],
+    matrixCreator: (coord: number) => mat4
   ) {
     super(device, vertices);
 
-    this.initInstancesMatrices();
+    this.initInstancesMatrices(matrixCreator);
     this.instancesBuffer = this.createInstancesBuffer(
       device,
       instancesBufferLabel
     );
   }
 
-  private initInstancesMatrices = () => {
+  private initInstancesMatrices = (matrixCreator: (coord: number) => mat4) => {
     const gridSpacing = 0.2;
     for (let i = 0; i < this.numInstances; i++) {
-      const z = (i - this.numInstances / 2) * gridSpacing;
+      const coord = (i - this.numInstances / 2) * gridSpacing;
       this.instancesMatrices.set(
-        createY0PlaneHorizontalLinesTranslationMatrix(z),
+        matrixCreator(coord),
         this.matrixFloatCount * i
       );
     }

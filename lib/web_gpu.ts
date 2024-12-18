@@ -101,7 +101,8 @@ export class WebGpu {
     const xAxisLines = new AxisLines(
       device,
       "x axes instances buffer (new)",
-      xAxisVerticesNew()
+      xAxisVerticesNew(),
+      createY0PlaneHorizontalLinesTranslationMatrix
     );
     this.xAxisLines = xAxisLines;
 
