@@ -4,9 +4,9 @@ import { xAxisVerticesNew, yAxisVertices, zAxisVerticesNew } from "./axis_mesh";
 import { Camera } from "./camera";
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from "./constants";
 import { CubeMesh } from "./cube_mesh";
-import { TriangleEntity } from "./entity";
 import { Mesh } from "./mesh";
 import my_shader from "./shaders/screen_shader.wgsl";
+import { TriangleEntity } from "./triangle_entity";
 
 export class WebGpu {
   adapter: GPUAdapter | null = null;
