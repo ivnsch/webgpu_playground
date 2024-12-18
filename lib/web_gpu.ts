@@ -7,6 +7,7 @@ import { Mesh } from "./mesh";
 import { xAxisVertices, yAxisVertices, zAxisVertices } from "./axis_mesh";
 import { CubeMesh } from "./cube_mesh";
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from "./constants";
+import { TriangleEntity } from "./drawable";
 
 export class WebGpu {
   adapter: GPUAdapter | null = null;
@@ -18,6 +19,8 @@ export class WebGpu {
 
   renderPassDescriptor: GPURenderPassDescriptor | null = null;
 
+  triangle: TriangleEntity | null = null;
+
   triangleMesh: TriangleMesh | null = null;
   cubeMesh: CubeMesh | null = null;
   xAxisMesh: Mesh | null = null;
@@ -25,6 +28,7 @@ export class WebGpu {
   zAxisMesh: Mesh | null = null;
 
   triangleBindGroup: GPUBindGroup | null = null;
+  triangleNewBindGroup: GPUBindGroup | null = null;
   xAxisBindGroup: GPUBindGroup | null = null;
   yAxisBindGroup: GPUBindGroup | null = null;
   zAxisBindGroup: GPUBindGroup | null = null;
@@ -45,6 +49,7 @@ export class WebGpu {
   yAxisMeshTypeBuffer: GPUBuffer | null = null;
   zAxisMeshTypeBuffer: GPUBuffer | null = null;
   triangleMeshTypeBuffer: GPUBuffer | null = null;
+  newTriangleMeshTypeBuffer: GPUBuffer | null = null;
   cubeMeshTypeBuffer: GPUBuffer | null = null;
 
   xAxesInstancesBuffer: GPUBuffer | null = null;
@@ -136,8 +141,11 @@ export class WebGpu {
     this.triangleMeshTypeBuffer = createMeshTypeUniformBuffer(device);
     new Uint32Array(this.triangleMeshTypeBuffer.getMappedRange()).set([3]);
     this.triangleMeshTypeBuffer.unmap();
+    this.newTriangleMeshTypeBuffer = createMeshTypeUniformBuffer(device);
+    new Uint32Array(this.newTriangleMeshTypeBuffer.getMappedRange()).set([4]);
+    this.newTriangleMeshTypeBuffer.unmap();
     this.cubeMeshTypeBuffer = createMeshTypeUniformBuffer(device);
-    new Uint32Array(this.cubeMeshTypeBuffer.getMappedRange()).set([4]);
+    new Uint32Array(this.cubeMeshTypeBuffer.getMappedRange()).set([5]);
     this.cubeMeshTypeBuffer.unmap();
 
     const xAxesInstancesBufferSize =
@@ -162,6 +170,7 @@ export class WebGpu {
     });
 
     this.triangleMesh = new TriangleMesh(this.device);
+    this.triangle = new TriangleEntity(this.device);
     this.cubeMesh = new CubeMesh(this.device);
     this.xAxisMesh = new Mesh("x axis mesh", this.device, xAxisVertices());
     this.yAxisMesh = new Mesh("y axis mesh", this.device, yAxisVertices());
@@ -182,6 +191,21 @@ export class WebGpu {
       this.zAxesInstancesBuffer,
       this.identityBuffer
     );
+
+    this.triangleNewBindGroup = createBindGroup(
+      "triangle (new) bind group",
+      this.device,
+      bindGroupLayout,
+      this.triangle.eulersBuffer,
+      this.cubeRotBuffer,
+      this.projectionBuffer,
+      this.cameraBuffer,
+      this.newTriangleMeshTypeBuffer,
+      this.xAxesInstancesBuffer,
+      this.zAxesInstancesBuffer,
+      this.identityBuffer
+    );
+    this.triangle.bindGroup = this.triangleNewBindGroup;
 
     this.cubeBindGroup = createBindGroup(
       "cube bind group",
@@ -283,7 +307,10 @@ export class WebGpu {
         this.yAxisMesh &&
         this.zAxisMesh &&
         this.triangleMesh &&
+        this.triangle &&
         this.cubeMesh &&
+        this.triangle.bindGroup &&
+        this.triangle.eulersMatrix &&
         this.triangleBindGroup &&
         this.cubeBindGroup &&
         this.xAxisBindGroup &&
@@ -300,6 +327,8 @@ export class WebGpu {
         this.identityBuffer
       )
     ) {
+      console.log("missing deps, can't render");
+      console.log("this triangle" + this.triangle?.bindGroup);
       return;
     }
 
@@ -310,14 +339,18 @@ export class WebGpu {
       this.xAxisMesh,
       this.yAxisMesh,
       this.zAxisMesh,
+      this.triangle,
       this.triangleMesh,
       this.cubeMesh,
+      this.triangle.bindGroup,
       this.triangleBindGroup,
       this.cubeBindGroup,
       this.xAxisBindGroup,
       this.yAxisBindGroup,
       this.zAxisBindGroup,
+      this.triangle.eulersBuffer,
       this.triangleRotBuffer,
+      this.triangle.eulersMatrix,
       this.triangleEulersMatrix,
       this.cubeRotBuffer,
       this.cubeEulersMatrix,
@@ -397,16 +430,20 @@ const render = (
   xAxisMesh: Mesh,
   yAxisMesh: Mesh,
   zAxisMesh: Mesh,
+  triangle: TriangleEntity,
   triangleMesh: TriangleMesh,
   cubeMesh: CubeMesh,
 
+  triangleNewBindGroup: GPUBindGroup,
   triangleBindGroup: GPUBindGroup,
   cubeBindGroup: GPUBindGroup,
   xAxisbindGroup: GPUBindGroup,
   yAxisbindGroup: GPUBindGroup,
   zAxisbindGroup: GPUBindGroup,
 
+  triangleNewEulersBuffer: GPUBuffer,
   triangleRotBuffer: GPUBuffer,
+  triangleNewEulersMatrix: mat4,
   triangleRotMatrix: mat4,
   cubeRotBuffer: GPUBuffer,
   cubeRotMatrix: mat4,
@@ -431,6 +468,11 @@ const render = (
 
   const pass = encoder.beginRenderPass(renderPassDescriptor);
   pass.setPipeline(pipeline);
+
+  //   triangle (new)
+  pass.setBindGroup(0, triangleNewBindGroup);
+  pass.setVertexBuffer(0, triangle.buffer);
+  pass.draw(3, 1);
 
   // triangle
   pass.setBindGroup(0, triangleBindGroup);
@@ -458,6 +500,11 @@ const render = (
   const commandBuffer = encoder.finish();
   device.queue.submit([commandBuffer]);
 
+  device.queue.writeBuffer(
+    triangleNewEulersBuffer,
+    0,
+    <ArrayBuffer>triangleNewEulersMatrix
+  );
   device.queue.writeBuffer(
     triangleRotBuffer,
     0,
@@ -636,7 +683,7 @@ const createProjectionMatrix = () => {
   return m;
 };
 
-const createIdentityMatrix = () => {
+export const createIdentityMatrix = () => {
   const m = mat4.create();
   mat4.identity(m);
   return m;
@@ -648,7 +695,7 @@ export const origin = () => {
   return m;
 };
 
-const createMatrixUniformBuffer = (device: GPUDevice): GPUBuffer => {
+export const createMatrixUniformBuffer = (device: GPUDevice): GPUBuffer => {
   return device.createBuffer({
     size: 64,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
