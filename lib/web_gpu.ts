@@ -134,13 +134,13 @@ export class WebGpu {
     new Uint32Array(this.zAxisMeshTypeBuffer.getMappedRange()).set([2]);
     this.zAxisMeshTypeBuffer.unmap();
     triangle.meshTypeBuffer = createMeshTypeUniformBuffer(device);
-    new Uint32Array(triangle.meshTypeBuffer.getMappedRange()).set([4]);
+    new Uint32Array(triangle.meshTypeBuffer.getMappedRange()).set([3]);
     triangle.meshTypeBuffer.unmap();
     this.cubeMeshTypeBuffer = createMeshTypeUniformBuffer(device);
-    new Uint32Array(this.cubeMeshTypeBuffer.getMappedRange()).set([5]);
+    new Uint32Array(this.cubeMeshTypeBuffer.getMappedRange()).set([4]);
     this.cubeMeshTypeBuffer.unmap();
     zAxisLines.meshTypeBuffer = createMeshTypeUniformBuffer(device);
-    new Uint32Array(zAxisLines.meshTypeBuffer.getMappedRange()).set([6]);
+    new Uint32Array(zAxisLines.meshTypeBuffer.getMappedRange()).set([5]);
     zAxisLines.meshTypeBuffer.unmap();
 
     const zAxesInstancesBufferSize =

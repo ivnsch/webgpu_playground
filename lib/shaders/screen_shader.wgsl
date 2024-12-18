@@ -40,13 +40,10 @@ fn vs_main(
     } else if (meshType == 3) { // triangle
         output.color = vec3<f32>(1.0, 0.0, 0.0); // red
         transformed = rotation_triangle * vertex_4;
-    } else if (meshType == 4) { // new triangle
-        output.color = vec3<f32>(0.5, 1.0, 0.5); // light green
-        transformed = rotation_triangle * vertex_4;
-    } else if (meshType == 5) { // cube
+    } else if (meshType == 4) { // cube
         output.color = vec3<f32>(1.0, 1.0, 0.0); // yellow
         transformed = rotation_cube * vertex_4;
-    } else if (meshType == 6) { // z axis new
+    } else if (meshType == 5) { // z axis new
         transformed = z_axes_transforms_new[instance_idx] * vertex_4;
         output.color = vec3<f32>(0.5, 0.5, 1.0); // light blue
     } else { // unexpected
