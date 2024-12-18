@@ -10,7 +10,8 @@ struct OurVertexShaderOutput {
 @binding(4) @group(0) var<uniform> meshType: u32;
 @binding(5) @group(0) var<uniform> x_axes_transforms: array<mat4x4f, 20>;
 @binding(6) @group(0) var<uniform> z_axes_transforms: array<mat4x4f, 20>;
-@binding(7) @group(0) var<uniform> identity: mat4x4f; // for debugging sometimes..
+@binding(7) @group(0) var<uniform> x_new_axes_transforms: array<mat4x4f, 20>;
+@binding(8) @group(0) var<uniform> identity: mat4x4f; // for debugging sometimes..
 
 @vertex
 fn vs_main(
@@ -45,6 +46,9 @@ fn vs_main(
     } else if (meshType == 5) { // cube
         output.color = vec3<f32>(1.0, 1.0, 0.0); // yellow
         transformed = rotation_cube * vertex_4;
+    } else if (meshType == 6) { // x axis new
+        transformed = x_axes_transforms[instance_idx] * vertex_4;
+        output.color = vec3<f32>(0.5, 0.5, 1.0); // light blue
     } else { // unexpected
         output.color = vec3<f32>(0.0, 0.0, 0.0); // black
     }

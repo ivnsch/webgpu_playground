@@ -1,13 +1,17 @@
 import { mat4, vec3 } from "gl-matrix";
-import { setObjPitch, setObjYaw, setObjRoll, trans } from "./matrix_3x3";
-import { TriangleMesh } from "./triangle_mesh";
-import my_shader from "./shaders/screen_shader.wgsl";
+import { AxisLines } from "./axis_lines";
+import {
+  xAxisVertices,
+  xAxisVerticesNew,
+  yAxisVertices,
+  zAxisVertices,
+} from "./axis_mesh";
 import { Camera } from "./camera";
-import { Mesh } from "./mesh";
-import { xAxisVertices, yAxisVertices, zAxisVertices } from "./axis_mesh";
-import { CubeMesh } from "./cube_mesh";
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from "./constants";
+import { CubeMesh } from "./cube_mesh";
 import { TriangleEntity } from "./entity";
+import { Mesh } from "./mesh";
+import my_shader from "./shaders/screen_shader.wgsl";
 
 export class WebGpu {
   adapter: GPUAdapter | null = null;
@@ -39,6 +43,8 @@ export class WebGpu {
 
   cameraBuffer: GPUBuffer | null = null;
   camera: Camera;
+
+  xAxisLines: AxisLines | null = null;
 
   xAxisMeshTypeBuffer: GPUBuffer | null = null;
   yAxisMeshTypeBuffer: GPUBuffer | null = null;
@@ -112,6 +118,12 @@ export class WebGpu {
     const triangle = new TriangleEntity(this.device);
     this.triangle = triangle;
     this.cubeMesh = new CubeMesh(this.device);
+    const xAxisLines = new AxisLines(
+      device,
+      "x axes instances buffer (new)",
+      xAxisVerticesNew()
+    );
+    this.xAxisLines = xAxisLines;
 
     this.context.configure({
       device: device,
@@ -138,7 +150,10 @@ export class WebGpu {
     this.cubeMeshTypeBuffer = createMeshTypeUniformBuffer(device);
     new Uint32Array(this.cubeMeshTypeBuffer.getMappedRange()).set([5]);
     this.cubeMeshTypeBuffer.unmap();
+    xAxisLines.meshTypeBuffer = createMeshTypeUniformBuffer(device);
+    new Uint32Array(xAxisLines.meshTypeBuffer.getMappedRange()).set([6]);
 
+    xAxisLines.meshTypeBuffer.unmap();
     const xAxesInstancesBufferSize =
       this.xAxesNumInstances * this.xAxesMatrixSize;
     this.xAxesInstancesBuffer = device.createBuffer({
@@ -177,6 +192,7 @@ export class WebGpu {
       triangle.meshTypeBuffer,
       this.xAxesInstancesBuffer,
       this.zAxesInstancesBuffer,
+      xAxisLines,
       this.identityBuffer
     );
 
@@ -191,9 +207,24 @@ export class WebGpu {
       this.cubeMeshTypeBuffer,
       this.xAxesInstancesBuffer,
       this.zAxesInstancesBuffer,
+      xAxisLines,
       this.identityBuffer
     );
 
+    this.xAxisLines.bindGroup = createBindGroup(
+      "x axis bind group (new)",
+      this.device,
+      bindGroupLayout,
+      this.triangle.eulersBuffer,
+      this.cubeRotBuffer,
+      this.projectionBuffer,
+      this.cameraBuffer,
+      xAxisLines.meshTypeBuffer,
+      xAxisLines.instancesBuffer,
+      this.zAxesInstancesBuffer,
+      xAxisLines,
+      this.identityBuffer
+    );
     this.xAxisBindGroup = createBindGroup(
       "x axis bind group",
       this.device,
@@ -205,6 +236,7 @@ export class WebGpu {
       this.xAxisMeshTypeBuffer,
       this.xAxesInstancesBuffer,
       this.zAxesInstancesBuffer,
+      xAxisLines,
       this.identityBuffer
     );
 
@@ -219,6 +251,7 @@ export class WebGpu {
       this.yAxisMeshTypeBuffer,
       this.xAxesInstancesBuffer,
       this.zAxesInstancesBuffer,
+      xAxisLines,
       this.identityBuffer
     );
 
@@ -233,6 +266,7 @@ export class WebGpu {
       this.zAxisMeshTypeBuffer,
       this.xAxesInstancesBuffer,
       this.zAxesInstancesBuffer,
+      xAxisLines,
       this.identityBuffer
     );
 
@@ -284,6 +318,7 @@ export class WebGpu {
         this.triangle.bindGroup &&
         this.triangle.eulersMatrix &&
         this.cubeBindGroup &&
+        this.xAxisLines &&
         this.xAxisBindGroup &&
         this.yAxisBindGroup &&
         this.zAxisBindGroup &&
@@ -305,6 +340,7 @@ export class WebGpu {
       this.device,
       this.renderPassDescriptor,
       this.pipeline,
+      this.xAxisLines,
       this.xAxisMesh,
       this.yAxisMesh,
       this.zAxisMesh,
@@ -353,6 +389,8 @@ const render = (
   device: GPUDevice,
   renderPassDescriptor: GPURenderPassDescriptor,
   pipeline: GPURenderPipeline,
+  xAxisLines: AxisLines,
+
   // it should be possible to make this more generic, for now like this
   xAxisMesh: Mesh,
   yAxisMesh: Mesh,
@@ -403,6 +441,7 @@ const render = (
   pass.draw(36, 1);
 
   // axes
+  xAxisLines.render(device, pass);
   pass.setBindGroup(0, xAxisbindGroup);
   pass.setVertexBuffer(0, xAxisMesh.buffer);
   pass.draw(6, xAxisNumInstances);
@@ -427,6 +466,13 @@ const render = (
   device.queue.writeBuffer(projectionBuffer, 0, <ArrayBuffer>projection);
   device.queue.writeBuffer(cameraBuffer, 0, <ArrayBuffer>camera.matrix());
   device.queue.writeBuffer(identityBuffer, 0, <ArrayBuffer>identityMatrix);
+  device.queue.writeBuffer(
+    xAxisLines.instancesBuffer,
+    0,
+    xAxisLines.instancesMatrices.buffer,
+    xAxisLines.instancesMatrices.byteOffset,
+    xAxisLines.instancesMatrices.byteLength
+  );
   device.queue.writeBuffer(
     xAxesInstancesBuffer,
     0,
@@ -473,6 +519,7 @@ const createBindGroupLayout = (device: GPUDevice): GPUBindGroupLayout => {
       { binding: 5, visibility: GPUShaderStage.VERTEX, buffer: {} },
       { binding: 6, visibility: GPUShaderStage.VERTEX, buffer: {} },
       { binding: 7, visibility: GPUShaderStage.VERTEX, buffer: {} },
+      { binding: 8, visibility: GPUShaderStage.VERTEX, buffer: {} },
     ],
   });
 };
@@ -488,6 +535,7 @@ const createBindGroup = (
   meshTypeBuffer: GPUBuffer,
   xAxisInstancesBuffer: GPUBuffer,
   zAxisInstancesBuffer: GPUBuffer,
+  xAxisLines: AxisLines,
   identityBuffer: GPUBuffer
 ): GPUBindGroup => {
   return device.createBindGroup({
@@ -501,7 +549,8 @@ const createBindGroup = (
       { binding: 4, resource: { buffer: meshTypeBuffer } },
       { binding: 5, resource: { buffer: xAxisInstancesBuffer } },
       { binding: 6, resource: { buffer: zAxisInstancesBuffer } },
-      { binding: 7, resource: { buffer: identityBuffer } },
+      { binding: 7, resource: { buffer: xAxisLines.instancesBuffer } },
+      { binding: 8, resource: { buffer: identityBuffer } },
     ],
   });
 };
@@ -623,19 +672,25 @@ const createMeshTypeUniformBuffer = (device: GPUDevice): GPUBuffer => {
   });
 };
 
-const createZ0PlaneHorizontalLinesTranslationMatrix = (y: number): mat4 => {
+export const createZ0PlaneHorizontalLinesTranslationMatrix = (
+  y: number
+): mat4 => {
   const m = mat4.create();
   mat4.fromTranslation(m, vec3.fromValues(0, y, 0));
   return m;
 };
 
-const createY0PlaneHorizontalLinesTranslationMatrix = (z: number): mat4 => {
+export const createY0PlaneHorizontalLinesTranslationMatrix = (
+  z: number
+): mat4 => {
   const m = mat4.create();
   mat4.fromTranslation(m, vec3.fromValues(0, 0, z));
   return m;
 };
 
-const createY0PlaneVerticalLinesTranslationMatrix = (x: number): mat4 => {
+export const createY0PlaneVerticalLinesTranslationMatrix = (
+  x: number
+): mat4 => {
   const m = mat4.create();
   mat4.fromTranslation(m, vec3.fromValues(x, 0, 0));
   return m;
