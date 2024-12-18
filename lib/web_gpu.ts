@@ -335,45 +335,7 @@ export class WebGpu {
   };
 
   setTriangleEulers = (pitch: number, yaw: number, roll: number) => {
-    if (!this.triangle) return;
-
-    // translate to origin
-    const transVec = this.triangle.translationToOrigin();
-    // const transVec = this.cubeMesh.translationToOrigin();
-    const transMatrix = trans(transVec);
-
-    // rotate
-    const pitchMatrix = setObjPitch(pitch);
-    const yawMatrix = setObjYaw(yaw);
-    const rollMatrix = setObjRoll(roll);
-
-    // translate back to original position
-    const negatedTransVec = vec3.create();
-    vec3.negate(negatedTransVec, transVec);
-    const transBackMatrix = trans(negatedTransVec);
-
-    const rotations = mat4.create();
-
-    // note inverse order
-    mat4.multiply(rotations, yawMatrix, transBackMatrix);
-    mat4.multiply(rotations, pitchMatrix, rotations);
-    mat4.multiply(rotations, rollMatrix, rotations);
-    mat4.multiply(rotations, transMatrix, rotations);
-
-    // // debug - apply the transform to some point (and compare with manual calculation)
-    // const testPoint = vec4.fromValues(0, 0, -2, 1);
-    // const transformed = vec4.create();
-    // vec4.transformMat4(transformed, testPoint, rotations);
-
-    const transposed = mat4.create();
-    mat4.transpose(transposed, rotations);
-
-    // not sure why it's needed to transpose,
-    // gl-matrix and webgpu are both supposed to use column-major?
-    // added it because noticed transposing fixes rotation (not rotating around center)
-    // this.rotMatrix = rotations;
-    this.triangle.eulersMatrix = transposed;
-    // this.cubeEulersMatrix = transposed;
+    this.triangle?.setEulers(pitch, yaw, roll);
   };
 
   setCameraEulers = (pitch: number, yaw: number, roll: number) => {

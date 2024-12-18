@@ -77,7 +77,7 @@ export class TriangleEntity extends Entity {
     return v;
   };
 
-  setTriangleEulers = (pitch: number, yaw: number, roll: number) => {
+  setEulers = (pitch: number, yaw: number, roll: number) => {
     // translate to origin
     const transVec = this.translationToOrigin();
     // const transVec = this.cubeMesh.translationToOrigin();
