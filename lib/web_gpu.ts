@@ -1,11 +1,6 @@
 import { mat4, vec3 } from "gl-matrix";
 import { AxisLines } from "./axis_lines";
-import {
-  xAxisVerticesNew,
-  yAxisVertices,
-  zAxisVertices,
-  zAxisVerticesNew,
-} from "./axis_mesh";
+import { xAxisVerticesNew, yAxisVertices, zAxisVerticesNew } from "./axis_mesh";
 import { Camera } from "./camera";
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from "./constants";
 import { CubeMesh } from "./cube_mesh";
@@ -252,7 +247,6 @@ export class WebGpu {
       )
     ) {
       console.log("missing deps, can't render");
-      console.log("this triangle" + this.triangle?.bindGroup);
       return;
     }
 
@@ -265,11 +259,8 @@ export class WebGpu {
       this.yAxisMesh,
       this.triangle,
       this.cubeMesh,
-      this.triangle.bindGroup,
       this.cubeBindGroup,
       this.yAxisBindGroup,
-      this.triangle.eulersBuffer,
-      this.triangle.eulersMatrix,
       this.cubeRotBuffer,
       this.cubeEulersMatrix,
       this.projectionBuffer,
@@ -308,12 +299,9 @@ const render = (
   triangle: TriangleEntity,
   cubeMesh: CubeMesh,
 
-  triangleNewBindGroup: GPUBindGroup,
   cubeBindGroup: GPUBindGroup,
   yAxisbindGroup: GPUBindGroup,
 
-  triangleNewEulersBuffer: GPUBuffer,
-  triangleNewEulersMatrix: mat4,
   cubeRotBuffer: GPUBuffer,
   cubeRotMatrix: mat4,
 
@@ -332,10 +320,8 @@ const render = (
   const pass = encoder.beginRenderPass(renderPassDescriptor);
   pass.setPipeline(pipeline);
 
-  //   triangle (new)
-  pass.setBindGroup(0, triangleNewBindGroup);
-  pass.setVertexBuffer(0, triangle.buffer);
-  pass.draw(3, 1);
+  // triangle
+  triangle.render(device, pass);
 
   // cube
   pass.setBindGroup(0, cubeBindGroup);
@@ -354,11 +340,6 @@ const render = (
   const commandBuffer = encoder.finish();
   device.queue.submit([commandBuffer]);
 
-  device.queue.writeBuffer(
-    triangleNewEulersBuffer,
-    0,
-    <ArrayBuffer>triangleNewEulersMatrix
-  );
   device.queue.writeBuffer(cubeRotBuffer, 0, <ArrayBuffer>cubeRotMatrix);
   device.queue.writeBuffer(projectionBuffer, 0, <ArrayBuffer>projection);
   device.queue.writeBuffer(cameraBuffer, 0, <ArrayBuffer>camera.matrix());

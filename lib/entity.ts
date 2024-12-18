@@ -46,9 +46,7 @@ export class Entity {
     pass.setBindGroup(0, this.bindGroup);
     pass.setVertexBuffer(0, this.buffer);
     pass.draw(3, 1);
-  };
 
-  foo = (device: GPUDevice) => {
     device.queue.writeBuffer(
       this.eulersBuffer,
       0,
