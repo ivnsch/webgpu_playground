@@ -27,10 +27,8 @@ export class WebGpu {
 
   cubeMesh: CubeMesh | null = null;
   yAxisMesh: Mesh | null = null;
-  zAxisMesh: Mesh | null = null;
 
   yAxisBindGroup: GPUBindGroup | null = null;
-  zAxisBindGroup: GPUBindGroup | null = null;
   cubeBindGroup: GPUBindGroup | null = null;
 
   cubeRotBuffer: GPUBuffer | null = null;
@@ -46,16 +44,7 @@ export class WebGpu {
   zAxisLines: AxisLines | null = null;
 
   yAxisMeshTypeBuffer: GPUBuffer | null = null;
-  zAxisMeshTypeBuffer: GPUBuffer | null = null;
   cubeMeshTypeBuffer: GPUBuffer | null = null;
-
-  zAxesInstancesBuffer: GPUBuffer | null = null;
-  zAxesNumInstances = 20; // remember to set this in z_axes_transforms in the shader too
-  zAxesMatrixFloatCount = 16; // 4x4 matrix
-  zAxesMatrixSize = 4 * this.zAxesMatrixFloatCount;
-  zAxesInstancesMatrices = new Float32Array(
-    this.zAxesMatrixFloatCount * this.zAxesNumInstances
-  );
 
   identityBuffer: GPUBuffer | null = null;
   identity: mat4;
@@ -68,15 +57,6 @@ export class WebGpu {
 
     this.projection = createProjectionMatrix();
     this.camera = new Camera(cameraPos);
-
-    const zGridSpacing = 0.2;
-    for (let i = 0; i < this.zAxesNumInstances; i++) {
-      const x = (i - this.zAxesNumInstances / 2) * zGridSpacing;
-      this.zAxesInstancesMatrices.set(
-        createY0PlaneVerticalLinesTranslationMatrix(x),
-        this.zAxesMatrixFloatCount * i
-      );
-    }
 
     this.identity = mat4.create();
     mat4.identity(this.identity);
@@ -130,9 +110,6 @@ export class WebGpu {
     this.yAxisMeshTypeBuffer = createMeshTypeUniformBuffer(device);
     new Uint32Array(this.yAxisMeshTypeBuffer.getMappedRange()).set([1]);
     this.yAxisMeshTypeBuffer.unmap();
-    this.zAxisMeshTypeBuffer = createMeshTypeUniformBuffer(device);
-    new Uint32Array(this.zAxisMeshTypeBuffer.getMappedRange()).set([2]);
-    this.zAxisMeshTypeBuffer.unmap();
     triangle.meshTypeBuffer = createMeshTypeUniformBuffer(device);
     new Uint32Array(triangle.meshTypeBuffer.getMappedRange()).set([3]);
     triangle.meshTypeBuffer.unmap();
@@ -143,14 +120,6 @@ export class WebGpu {
     new Uint32Array(zAxisLines.meshTypeBuffer.getMappedRange()).set([5]);
     zAxisLines.meshTypeBuffer.unmap();
 
-    const zAxesInstancesBufferSize =
-      this.zAxesNumInstances * this.zAxesMatrixSize;
-    this.zAxesInstancesBuffer = device.createBuffer({
-      label: "z axes instances buffer",
-      size: zAxesInstancesBufferSize,
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-    });
-
     this.identityBuffer = device.createBuffer({
       label: "identity buffer",
       size: 64, // 4 x 4 matrix x 4 bytes per float
@@ -158,7 +127,6 @@ export class WebGpu {
     });
 
     this.yAxisMesh = new Mesh("y axis mesh", this.device, yAxisVertices());
-    this.zAxisMesh = new Mesh("z axis mesh", this.device, zAxisVertices());
 
     const bindGroupLayout = createBindGroupLayout(this.device);
 
@@ -171,7 +139,6 @@ export class WebGpu {
       this.projectionBuffer,
       this.cameraBuffer,
       triangle.meshTypeBuffer,
-      this.zAxesInstancesBuffer,
       xAxisLines,
       zAxisLines,
       this.identityBuffer
@@ -186,7 +153,6 @@ export class WebGpu {
       this.projectionBuffer,
       this.cameraBuffer,
       this.cubeMeshTypeBuffer,
-      this.zAxesInstancesBuffer,
       xAxisLines,
       zAxisLines,
       this.identityBuffer
@@ -201,7 +167,6 @@ export class WebGpu {
       this.projectionBuffer,
       this.cameraBuffer,
       xAxisLines.meshTypeBuffer,
-      this.zAxesInstancesBuffer,
       xAxisLines,
       zAxisLines,
       this.identityBuffer
@@ -216,22 +181,6 @@ export class WebGpu {
       this.projectionBuffer,
       this.cameraBuffer,
       this.yAxisMeshTypeBuffer,
-      this.zAxesInstancesBuffer,
-      xAxisLines,
-      zAxisLines,
-      this.identityBuffer
-    );
-
-    this.zAxisBindGroup = createBindGroup(
-      "z axis bind group",
-      this.device,
-      bindGroupLayout,
-      this.triangle.eulersBuffer,
-      this.cubeRotBuffer,
-      this.projectionBuffer,
-      this.cameraBuffer,
-      this.zAxisMeshTypeBuffer,
-      this.zAxesInstancesBuffer,
       xAxisLines,
       zAxisLines,
       this.identityBuffer
@@ -246,7 +195,6 @@ export class WebGpu {
       this.projectionBuffer,
       this.cameraBuffer,
       zAxisLines.meshTypeBuffer,
-      this.zAxisLines.instancesBuffer,
       xAxisLines,
       zAxisLines,
       this.identityBuffer
@@ -293,7 +241,6 @@ export class WebGpu {
         this.renderPassDescriptor &&
         this.pipeline &&
         this.yAxisMesh &&
-        this.zAxisMesh &&
         this.triangle &&
         this.cubeMesh &&
         this.triangle.bindGroup &&
@@ -302,12 +249,10 @@ export class WebGpu {
         this.xAxisLines &&
         this.zAxisLines &&
         this.yAxisBindGroup &&
-        this.zAxisBindGroup &&
         this.cubeRotBuffer &&
         this.cubeEulersMatrix &&
         this.projectionBuffer &&
         this.cameraBuffer &&
-        this.zAxesInstancesBuffer &&
         this.identityBuffer
       )
     ) {
@@ -323,13 +268,11 @@ export class WebGpu {
       this.xAxisLines,
       this.zAxisLines,
       this.yAxisMesh,
-      this.zAxisMesh,
       this.triangle,
       this.cubeMesh,
       this.triangle.bindGroup,
       this.cubeBindGroup,
       this.yAxisBindGroup,
-      this.zAxisBindGroup,
       this.triangle.eulersBuffer,
       this.triangle.eulersMatrix,
       this.cubeRotBuffer,
@@ -338,9 +281,6 @@ export class WebGpu {
       this.projection,
       this.cameraBuffer,
       this.camera,
-      this.zAxesInstancesBuffer,
-      this.zAxesInstancesMatrices,
-      this.zAxesNumInstances,
       this.identityBuffer,
       this.identity
     );
@@ -370,14 +310,12 @@ const render = (
 
   // it should be possible to make this more generic, for now like this
   yAxisMesh: Mesh,
-  zAxisMesh: Mesh,
   triangle: TriangleEntity,
   cubeMesh: CubeMesh,
 
   triangleNewBindGroup: GPUBindGroup,
   cubeBindGroup: GPUBindGroup,
   yAxisbindGroup: GPUBindGroup,
-  zAxisbindGroup: GPUBindGroup,
 
   triangleNewEulersBuffer: GPUBuffer,
   triangleNewEulersMatrix: mat4,
@@ -389,9 +327,6 @@ const render = (
   cameraBuffer: GPUBuffer,
   camera: Camera,
 
-  zAxesInstancesBuffer: GPUBuffer,
-  zAxesInstancesMatrices: Float32Array,
-  zAxisNumInstances: number,
   identityBuffer: GPUBuffer,
   identityMatrix: mat4
 ) => {
@@ -418,9 +353,6 @@ const render = (
   pass.setBindGroup(0, yAxisbindGroup);
   pass.setVertexBuffer(0, yAxisMesh.buffer);
   pass.draw(6, 1);
-  pass.setBindGroup(0, zAxisbindGroup);
-  pass.setVertexBuffer(0, zAxisMesh.buffer);
-  pass.draw(6, zAxisNumInstances);
 
   pass.end();
 
@@ -449,13 +381,6 @@ const render = (
     zAxisLines.instancesMatrices.buffer,
     zAxisLines.instancesMatrices.byteOffset,
     zAxisLines.instancesMatrices.byteLength
-  );
-  device.queue.writeBuffer(
-    zAxesInstancesBuffer,
-    0,
-    zAxesInstancesMatrices.buffer,
-    zAxesInstancesMatrices.byteOffset,
-    zAxesInstancesMatrices.byteLength
   );
 };
 
@@ -489,7 +414,6 @@ const createBindGroupLayout = (device: GPUDevice): GPUBindGroupLayout => {
       { binding: 5, visibility: GPUShaderStage.VERTEX, buffer: {} },
       { binding: 6, visibility: GPUShaderStage.VERTEX, buffer: {} },
       { binding: 7, visibility: GPUShaderStage.VERTEX, buffer: {} },
-      { binding: 8, visibility: GPUShaderStage.VERTEX, buffer: {} },
     ],
   });
 };
@@ -503,7 +427,6 @@ const createBindGroup = (
   projectionBuffer: GPUBuffer,
   cameraBuffer: GPUBuffer,
   meshTypeBuffer: GPUBuffer,
-  zAxisInstancesBuffer: GPUBuffer,
   xAxisLines: AxisLines,
   zAxisLines: AxisLines,
   identityBuffer: GPUBuffer
@@ -517,10 +440,9 @@ const createBindGroup = (
       { binding: 2, resource: { buffer: triangleRotBuffer } },
       { binding: 3, resource: { buffer: cubeRotBuffer } },
       { binding: 4, resource: { buffer: meshTypeBuffer } },
-      { binding: 5, resource: { buffer: zAxisInstancesBuffer } },
-      { binding: 6, resource: { buffer: xAxisLines.instancesBuffer } },
-      { binding: 7, resource: { buffer: zAxisLines.instancesBuffer } },
-      { binding: 8, resource: { buffer: identityBuffer } },
+      { binding: 5, resource: { buffer: xAxisLines.instancesBuffer } },
+      { binding: 6, resource: { buffer: zAxisLines.instancesBuffer } },
+      { binding: 7, resource: { buffer: identityBuffer } },
     ],
   });
 };
