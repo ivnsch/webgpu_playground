@@ -4,7 +4,11 @@ import {
   createDefaultBufferLayout,
   setDefaultVerticesInBuffer,
 } from "./mesh";
-import { createIdentityMatrix, createMatrixUniformBuffer } from "./web_gpu";
+import {
+  createIdentityMatrix,
+  createMatrixUniformBuffer,
+  createMeshTypeUniformBuffer,
+} from "./web_gpu";
 import { setObjPitch, setObjRoll, setObjYaw, trans } from "./matrix_3x3";
 
 export class Entity {
@@ -31,6 +35,12 @@ export class Entity {
   }
 
   initialize = () => {};
+
+  initMeshType = (device: GPUDevice, id: number) => {
+    this.meshTypeBuffer = createMeshTypeUniformBuffer(device);
+    new Uint32Array(this.meshTypeBuffer.getMappedRange()).set([id]);
+    this.meshTypeBuffer.unmap();
+  };
 
   render = (device: GPUDevice, pass: GPURenderPassEncoder) => {
     pass.setBindGroup(0, this.bindGroup);

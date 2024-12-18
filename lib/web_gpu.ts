@@ -104,21 +104,16 @@ export class WebGpu {
     this.cameraBuffer = createMatrixUniformBuffer(device);
 
     // types
-    xAxisLines.meshTypeBuffer = createMeshTypeUniformBuffer(device);
-    new Uint32Array(xAxisLines.meshTypeBuffer.getMappedRange()).set([0]);
-    xAxisLines.meshTypeBuffer.unmap();
+
+    xAxisLines.initMeshType(device, 0);
     this.yAxisMeshTypeBuffer = createMeshTypeUniformBuffer(device);
     new Uint32Array(this.yAxisMeshTypeBuffer.getMappedRange()).set([1]);
     this.yAxisMeshTypeBuffer.unmap();
-    triangle.meshTypeBuffer = createMeshTypeUniformBuffer(device);
-    new Uint32Array(triangle.meshTypeBuffer.getMappedRange()).set([3]);
-    triangle.meshTypeBuffer.unmap();
+    triangle.initMeshType(device, 3);
     this.cubeMeshTypeBuffer = createMeshTypeUniformBuffer(device);
     new Uint32Array(this.cubeMeshTypeBuffer.getMappedRange()).set([4]);
     this.cubeMeshTypeBuffer.unmap();
-    zAxisLines.meshTypeBuffer = createMeshTypeUniformBuffer(device);
-    new Uint32Array(zAxisLines.meshTypeBuffer.getMappedRange()).set([5]);
-    zAxisLines.meshTypeBuffer.unmap();
+    zAxisLines.initMeshType(device, 5);
 
     this.identityBuffer = device.createBuffer({
       label: "identity buffer",
@@ -556,7 +551,7 @@ export const createMatrixUniformBuffer = (device: GPUDevice): GPUBuffer => {
   });
 };
 
-const createMeshTypeUniformBuffer = (device: GPUDevice): GPUBuffer => {
+export const createMeshTypeUniformBuffer = (device: GPUDevice): GPUBuffer => {
   return device.createBuffer({
     size: 16,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
