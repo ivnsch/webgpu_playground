@@ -33,7 +33,7 @@ export const xAxisVertices = () => {
 export const yAxisVertices = () => {
   // x y z
   // prettier-ignore
-  return new Float32Array([
+  return [
         -hw, len, 0, 
         hw, len, 0, 
         -hw, -len, 0, 
@@ -41,7 +41,7 @@ export const yAxisVertices = () => {
         -hw, -len, 0, 
         hw, len, 0, 
         hw, -len, 0, 
-    ])
+    ]
 };
 
 export const zAxisVerticesNew = () => {
