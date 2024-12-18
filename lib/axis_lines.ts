@@ -5,8 +5,6 @@ import { Mesh } from "./mesh";
 export class AxisLines extends Entity {
   mesh: Mesh | null = null;
 
-  meshTypeBuffer: GPUBuffer | null = null;
-
   instancesBuffer: GPUBuffer;
   numInstances = 20; // remember to set this in *_axes_transforms in the shader too
   matrixFloatCount = 16; // 4x4 matrix
@@ -34,12 +32,6 @@ export class AxisLines extends Entity {
     const gridSpacing = 0.2;
     for (let i = 0; i < this.numInstances; i++) {
       const coord = (i - this.numInstances / 2) * gridSpacing;
-    //   console.log(
-    //     "!! matrix created for coord: " +
-    //       coord +
-    //       ", matrix: " +
-    //       matrixCreator(coord)
-    //   );
       this.instancesMatrices.set(
         matrixCreator(coord),
         this.matrixFloatCount * i
