@@ -7,6 +7,7 @@ import my_shader from "./shaders/screen_shader.wgsl";
 import { TriangleEntity } from "./triangle_entity";
 import { CubeEntity } from "./cube_entity";
 import { Axis } from "./axis";
+import { Entity } from "./entity";
 
 export class WebGpu {
   adapter: GPUAdapter | null = null;
@@ -18,18 +19,15 @@ export class WebGpu {
 
   renderPassDescriptor: GPURenderPassDescriptor | null = null;
 
-  triangle: TriangleEntity | null = null;
-  cube: TriangleEntity | null = null;
-
   projectionBuffer: GPUBuffer | null = null;
   projection: mat4;
 
   cameraBuffer: GPUBuffer | null = null;
   camera: Camera;
 
-  yAxis: Axis | null = null;
-  xAxisLines: AxisLines | null = null;
-  zAxisLines: AxisLines | null = null;
+  entities: Entity[] = [];
+  // separate to set eulers via keyboard
+  triangle: TriangleEntity | null = null;
 
   identityBuffer: GPUBuffer | null = null;
   identity: mat4;
@@ -62,9 +60,7 @@ export class WebGpu {
     this.device = device;
 
     const triangle = new TriangleEntity(this.device);
-    this.triangle = triangle;
     const cube = new CubeEntity(this.device);
-    this.cube = cube;
     const xAxisLines = new AxisLines(
       device,
       "x axes instances buffer (new)",
@@ -78,9 +74,8 @@ export class WebGpu {
       createY0PlaneVerticalLinesTranslationMatrix
     );
     const yAxis = new Axis(device, yAxisVertices());
-    this.yAxis = yAxis;
-    this.xAxisLines = xAxisLines;
-    this.zAxisLines = zAxisLines;
+
+    this.entities = [yAxis, xAxisLines, zAxisLines, triangle, cube];
 
     this.context.configure({
       device: device,
@@ -106,12 +101,17 @@ export class WebGpu {
 
     const bindGroupLayout = createBindGroupLayout(this.device);
 
+    // bind groups
+    // this part looks overly verbose but not sure how to refactor
+    // the approach itself feels slightly weird, but it works..
+    // also ideally it should be initialized in the respective entities? but too many dependencies..
+
     triangle.bindGroup = createBindGroup(
       "triangle (new) bind group",
       this.device,
       bindGroupLayout,
-      this.triangle.eulersBuffer,
-      this.cube.eulersBuffer,
+      triangle.eulersBuffer,
+      cube.eulersBuffer,
       this.projectionBuffer,
       this.cameraBuffer,
       triangle.meshTypeBuffer,
@@ -124,8 +124,8 @@ export class WebGpu {
       "cube bind group",
       this.device,
       bindGroupLayout,
-      this.triangle.eulersBuffer,
-      this.cube.eulersBuffer,
+      triangle.eulersBuffer,
+      cube.eulersBuffer,
       this.projectionBuffer,
       this.cameraBuffer,
       cube.meshTypeBuffer,
@@ -134,12 +134,12 @@ export class WebGpu {
       this.identityBuffer
     );
 
-    this.xAxisLines.bindGroup = createBindGroup(
+    xAxisLines.bindGroup = createBindGroup(
       "x axis bind group (new)",
       this.device,
       bindGroupLayout,
-      this.triangle.eulersBuffer,
-      this.cube.eulersBuffer,
+      triangle.eulersBuffer,
+      cube.eulersBuffer,
       this.projectionBuffer,
       this.cameraBuffer,
       xAxisLines.meshTypeBuffer,
@@ -152,8 +152,8 @@ export class WebGpu {
       "y axis bind group",
       this.device,
       bindGroupLayout,
-      this.triangle.eulersBuffer,
-      this.cube.eulersBuffer,
+      triangle.eulersBuffer,
+      cube.eulersBuffer,
       this.projectionBuffer,
       this.cameraBuffer,
       yAxis.meshTypeBuffer,
@@ -162,12 +162,12 @@ export class WebGpu {
       this.identityBuffer
     );
 
-    this.zAxisLines.bindGroup = createBindGroup(
+    zAxisLines.bindGroup = createBindGroup(
       "z axis bind group (new)",
       this.device,
       bindGroupLayout,
-      this.triangle.eulersBuffer,
-      this.cube.eulersBuffer,
+      triangle.eulersBuffer,
+      cube.eulersBuffer,
       this.projectionBuffer,
       this.cameraBuffer,
       zAxisLines.meshTypeBuffer,
@@ -182,7 +182,7 @@ export class WebGpu {
       my_shader,
       device,
       this.presentationFormat,
-      this.triangle.bufferLayout,
+      triangle.bufferLayout,
       bindGroupLayout,
       this.depthStencilResources.depthStencilState
     );
@@ -216,13 +216,6 @@ export class WebGpu {
         this.device &&
         this.renderPassDescriptor &&
         this.pipeline &&
-        this.yAxis &&
-        this.triangle &&
-        this.cube &&
-        this.triangle.bindGroup &&
-        this.triangle.eulersMatrix &&
-        this.xAxisLines &&
-        this.zAxisLines &&
         this.projectionBuffer &&
         this.cameraBuffer &&
         this.identityBuffer
@@ -236,11 +229,7 @@ export class WebGpu {
       this.device,
       this.renderPassDescriptor,
       this.pipeline,
-      this.xAxisLines,
-      this.zAxisLines,
-      this.yAxis,
-      this.triangle,
-      this.cube,
+      this.entities,
       this.projectionBuffer,
       this.projection,
       this.cameraBuffer,
@@ -269,13 +258,7 @@ const render = (
   device: GPUDevice,
   renderPassDescriptor: GPURenderPassDescriptor,
   pipeline: GPURenderPipeline,
-  xAxisLines: AxisLines,
-  zAxisLines: AxisLines,
-
-  // it should be possible to make this more generic, for now like this
-  yAxis: Axis,
-  triangle: TriangleEntity,
-  cube: CubeEntity,
+  entities: Entity[],
 
   projectionBuffer: GPUBuffer,
   projection: mat4,
@@ -292,16 +275,9 @@ const render = (
   const pass = encoder.beginRenderPass(renderPassDescriptor);
   pass.setPipeline(pipeline);
 
-  // triangle
-  triangle.render(device, pass);
-
-  // cube
-  cube.render(device, pass);
-
-  // axes
-  xAxisLines.render(device, pass);
-  zAxisLines.render(device, pass);
-  yAxis.render(device, pass);
+  entities.forEach((entity) => {
+    entity.render(device, pass);
+  });
 
   pass.end();
 
