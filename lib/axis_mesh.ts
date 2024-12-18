@@ -44,6 +44,20 @@ export const yAxisVertices = () => {
     ])
 };
 
+export const zAxisVerticesNew = () => {
+  // x y z
+  // prettier-ignore
+  return [
+          0, hw, len, 
+          0, hw, -len, 
+          0, -hw, -len, 
+  
+          0, -hw, -len, 
+          0, hw, len, 
+          0, -hw, len, 
+      ]
+};
+
 export const zAxisVertices = () => {
   // x y z
   // prettier-ignore

@@ -1,7 +1,6 @@
 import { mat4 } from "gl-matrix";
 import { Entity } from "./entity";
 import { Mesh } from "./mesh";
-import { createY0PlaneHorizontalLinesTranslationMatrix } from "./web_gpu";
 
 export class AxisLines extends Entity {
   mesh: Mesh | null = null;
@@ -35,6 +34,12 @@ export class AxisLines extends Entity {
     const gridSpacing = 0.2;
     for (let i = 0; i < this.numInstances; i++) {
       const coord = (i - this.numInstances / 2) * gridSpacing;
+    //   console.log(
+    //     "!! matrix created for coord: " +
+    //       coord +
+    //       ", matrix: " +
+    //       matrixCreator(coord)
+    //   );
       this.instancesMatrices.set(
         matrixCreator(coord),
         this.matrixFloatCount * i
