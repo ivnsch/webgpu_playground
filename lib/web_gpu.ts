@@ -21,21 +21,17 @@ export class WebGpu {
 
   triangle: TriangleEntity | null = null;
 
-  triangleMesh: TriangleMesh | null = null;
   cubeMesh: CubeMesh | null = null;
   xAxisMesh: Mesh | null = null;
   yAxisMesh: Mesh | null = null;
   zAxisMesh: Mesh | null = null;
 
-  triangleBindGroup: GPUBindGroup | null = null;
   triangleNewBindGroup: GPUBindGroup | null = null;
   xAxisBindGroup: GPUBindGroup | null = null;
   yAxisBindGroup: GPUBindGroup | null = null;
   zAxisBindGroup: GPUBindGroup | null = null;
   cubeBindGroup: GPUBindGroup | null = null;
 
-  triangleRotBuffer: GPUBuffer | null = null;
-  triangleEulersMatrix: mat4 | null = createIdentityMatrix();
   cubeRotBuffer: GPUBuffer | null = null;
   cubeEulersMatrix: mat4 | null = createIdentityMatrix();
 
@@ -48,7 +44,6 @@ export class WebGpu {
   xAxisMeshTypeBuffer: GPUBuffer | null = null;
   yAxisMeshTypeBuffer: GPUBuffer | null = null;
   zAxisMeshTypeBuffer: GPUBuffer | null = null;
-  triangleMeshTypeBuffer: GPUBuffer | null = null;
   newTriangleMeshTypeBuffer: GPUBuffer | null = null;
   cubeMeshTypeBuffer: GPUBuffer | null = null;
 
@@ -74,8 +69,6 @@ export class WebGpu {
   depthStencilResources: DepthBufferResources | null = null;
 
   constructor(canvas: HTMLCanvasElement, cameraPos: vec3) {
-    console.log(this.triangleEulersMatrix);
-
     this.presentationFormat = "bgra8unorm";
     this.context = <GPUCanvasContext>canvas.getContext("webgpu");
 
@@ -123,7 +116,6 @@ export class WebGpu {
       format: this.presentationFormat,
     });
 
-    this.triangleRotBuffer = createMatrixUniformBuffer(device);
     this.cubeRotBuffer = createMatrixUniformBuffer(device);
     this.projectionBuffer = createMatrixUniformBuffer(device);
     this.cameraBuffer = createMatrixUniformBuffer(device);
@@ -138,9 +130,6 @@ export class WebGpu {
     this.zAxisMeshTypeBuffer = createMeshTypeUniformBuffer(device);
     new Uint32Array(this.zAxisMeshTypeBuffer.getMappedRange()).set([2]);
     this.zAxisMeshTypeBuffer.unmap();
-    this.triangleMeshTypeBuffer = createMeshTypeUniformBuffer(device);
-    new Uint32Array(this.triangleMeshTypeBuffer.getMappedRange()).set([3]);
-    this.triangleMeshTypeBuffer.unmap();
     this.newTriangleMeshTypeBuffer = createMeshTypeUniformBuffer(device);
     new Uint32Array(this.newTriangleMeshTypeBuffer.getMappedRange()).set([4]);
     this.newTriangleMeshTypeBuffer.unmap();
@@ -169,7 +158,6 @@ export class WebGpu {
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
-    this.triangleMesh = new TriangleMesh(this.device);
     this.triangle = new TriangleEntity(this.device);
     this.cubeMesh = new CubeMesh(this.device);
     this.xAxisMesh = new Mesh("x axis mesh", this.device, xAxisVertices());
@@ -177,20 +165,6 @@ export class WebGpu {
     this.zAxisMesh = new Mesh("z axis mesh", this.device, zAxisVertices());
 
     const bindGroupLayout = createBindGroupLayout(this.device);
-
-    this.triangleBindGroup = createBindGroup(
-      "triangle bind group",
-      this.device,
-      bindGroupLayout,
-      this.triangleRotBuffer,
-      this.cubeRotBuffer,
-      this.projectionBuffer,
-      this.cameraBuffer,
-      this.triangleMeshTypeBuffer,
-      this.xAxesInstancesBuffer,
-      this.zAxesInstancesBuffer,
-      this.identityBuffer
-    );
 
     this.triangleNewBindGroup = createBindGroup(
       "triangle (new) bind group",
@@ -211,7 +185,7 @@ export class WebGpu {
       "cube bind group",
       this.device,
       bindGroupLayout,
-      this.triangleRotBuffer,
+      this.triangle.eulersBuffer,
       this.cubeRotBuffer,
       this.projectionBuffer,
       this.cameraBuffer,
@@ -225,7 +199,7 @@ export class WebGpu {
       "x axis bind group",
       this.device,
       bindGroupLayout,
-      this.triangleRotBuffer,
+      this.triangle.eulersBuffer,
       this.cubeRotBuffer,
       this.projectionBuffer,
       this.cameraBuffer,
@@ -239,7 +213,7 @@ export class WebGpu {
       "y axis bind group",
       this.device,
       bindGroupLayout,
-      this.triangleRotBuffer,
+      this.triangle.eulersBuffer,
       this.cubeRotBuffer,
       this.projectionBuffer,
       this.cameraBuffer,
@@ -253,7 +227,7 @@ export class WebGpu {
       "z axis bind group",
       this.device,
       bindGroupLayout,
-      this.triangleRotBuffer,
+      this.triangle.eulersBuffer,
       this.cubeRotBuffer,
       this.projectionBuffer,
       this.cameraBuffer,
@@ -269,7 +243,7 @@ export class WebGpu {
       my_shader,
       device,
       this.presentationFormat,
-      this.triangleMesh,
+      this.triangle.bufferLayout,
       bindGroupLayout,
       this.depthStencilResources.depthStencilState
     );
@@ -306,18 +280,14 @@ export class WebGpu {
         this.xAxisMesh &&
         this.yAxisMesh &&
         this.zAxisMesh &&
-        this.triangleMesh &&
         this.triangle &&
         this.cubeMesh &&
         this.triangle.bindGroup &&
         this.triangle.eulersMatrix &&
-        this.triangleBindGroup &&
         this.cubeBindGroup &&
         this.xAxisBindGroup &&
         this.yAxisBindGroup &&
         this.zAxisBindGroup &&
-        this.triangleRotBuffer &&
-        this.triangleEulersMatrix &&
         this.cubeRotBuffer &&
         this.cubeEulersMatrix &&
         this.projectionBuffer &&
@@ -340,18 +310,14 @@ export class WebGpu {
       this.yAxisMesh,
       this.zAxisMesh,
       this.triangle,
-      this.triangleMesh,
       this.cubeMesh,
       this.triangle.bindGroup,
-      this.triangleBindGroup,
       this.cubeBindGroup,
       this.xAxisBindGroup,
       this.yAxisBindGroup,
       this.zAxisBindGroup,
       this.triangle.eulersBuffer,
-      this.triangleRotBuffer,
       this.triangle.eulersMatrix,
-      this.triangleEulersMatrix,
       this.cubeRotBuffer,
       this.cubeEulersMatrix,
       this.projectionBuffer,
@@ -370,10 +336,10 @@ export class WebGpu {
   };
 
   setTriangleEulers = (pitch: number, yaw: number, roll: number) => {
-    if (!this.triangleMesh) return;
+    if (!this.triangle) return;
 
     // translate to origin
-    const transVec = this.triangleMesh.translationToOrigin();
+    const transVec = this.triangle.translationToOrigin();
     // const transVec = this.cubeMesh.translationToOrigin();
     const transMatrix = trans(transVec);
 
@@ -407,7 +373,7 @@ export class WebGpu {
     // gl-matrix and webgpu are both supposed to use column-major?
     // added it because noticed transposing fixes rotation (not rotating around center)
     // this.rotMatrix = rotations;
-    this.triangleEulersMatrix = transposed;
+    this.triangle.eulersMatrix = transposed;
     // this.cubeEulersMatrix = transposed;
   };
 
@@ -431,20 +397,16 @@ const render = (
   yAxisMesh: Mesh,
   zAxisMesh: Mesh,
   triangle: TriangleEntity,
-  triangleMesh: TriangleMesh,
   cubeMesh: CubeMesh,
 
   triangleNewBindGroup: GPUBindGroup,
-  triangleBindGroup: GPUBindGroup,
   cubeBindGroup: GPUBindGroup,
   xAxisbindGroup: GPUBindGroup,
   yAxisbindGroup: GPUBindGroup,
   zAxisbindGroup: GPUBindGroup,
 
   triangleNewEulersBuffer: GPUBuffer,
-  triangleRotBuffer: GPUBuffer,
   triangleNewEulersMatrix: mat4,
-  triangleRotMatrix: mat4,
   cubeRotBuffer: GPUBuffer,
   cubeRotMatrix: mat4,
 
@@ -474,11 +436,6 @@ const render = (
   pass.setVertexBuffer(0, triangle.buffer);
   pass.draw(3, 1);
 
-  // triangle
-  pass.setBindGroup(0, triangleBindGroup);
-  pass.setVertexBuffer(0, triangleMesh.buffer);
-  pass.draw(3, 1);
-
   // cube
   pass.setBindGroup(0, cubeBindGroup);
   pass.setVertexBuffer(0, cubeMesh.buffer);
@@ -504,11 +461,6 @@ const render = (
     triangleNewEulersBuffer,
     0,
     <ArrayBuffer>triangleNewEulersMatrix
-  );
-  device.queue.writeBuffer(
-    triangleRotBuffer,
-    0,
-    <ArrayBuffer>triangleRotMatrix
   );
   device.queue.writeBuffer(cubeRotBuffer, 0, <ArrayBuffer>cubeRotMatrix);
   device.queue.writeBuffer(projectionBuffer, 0, <ArrayBuffer>projection);
@@ -597,7 +549,7 @@ const createPipeline = (
   shader: string,
   device: GPUDevice,
   presentationFormat: GPUTextureFormat,
-  triangleMesh: TriangleMesh,
+  triangleBuffer: GPUVertexBufferLayout,
   bindGroupLayout: GPUBindGroupLayout,
   depthStencilState: GPUDepthStencilState
 ): GPURenderPipeline => {
@@ -611,7 +563,7 @@ const createPipeline = (
     vertex: {
       module: device.createShaderModule({ code: shader }),
       entryPoint: "vs_main",
-      buffers: [triangleMesh.bufferLayout],
+      buffers: [triangleBuffer],
     },
     fragment: {
       module: device.createShaderModule({ code: shader }),
