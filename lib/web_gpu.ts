@@ -22,7 +22,6 @@ export class WebGpu {
   projectionBuffer: GPUBuffer | null = null;
   projection: mat4;
 
-  cameraBuffer: GPUBuffer | null = null;
   camera: Camera;
 
   entities: Entity[] = [];
@@ -83,7 +82,7 @@ export class WebGpu {
     });
 
     this.projectionBuffer = createMatrixUniformBuffer(device);
-    this.cameraBuffer = createMatrixUniformBuffer(device);
+    this.camera.buffer = createMatrixUniformBuffer(device);
 
     // types
 
@@ -113,7 +112,7 @@ export class WebGpu {
       triangle.eulersBuffer,
       cube.eulersBuffer,
       this.projectionBuffer,
-      this.cameraBuffer,
+      this.camera.buffer,
       triangle.meshTypeBuffer,
       xAxisLines,
       zAxisLines,
@@ -127,7 +126,7 @@ export class WebGpu {
       triangle.eulersBuffer,
       cube.eulersBuffer,
       this.projectionBuffer,
-      this.cameraBuffer,
+      this.camera.buffer,
       cube.meshTypeBuffer,
       xAxisLines,
       zAxisLines,
@@ -141,7 +140,7 @@ export class WebGpu {
       triangle.eulersBuffer,
       cube.eulersBuffer,
       this.projectionBuffer,
-      this.cameraBuffer,
+      this.camera.buffer,
       xAxisLines.meshTypeBuffer,
       xAxisLines,
       zAxisLines,
@@ -155,7 +154,7 @@ export class WebGpu {
       triangle.eulersBuffer,
       cube.eulersBuffer,
       this.projectionBuffer,
-      this.cameraBuffer,
+      this.camera.buffer,
       yAxis.meshTypeBuffer,
       xAxisLines,
       zAxisLines,
@@ -169,7 +168,7 @@ export class WebGpu {
       triangle.eulersBuffer,
       cube.eulersBuffer,
       this.projectionBuffer,
-      this.cameraBuffer,
+      this.camera.buffer,
       zAxisLines.meshTypeBuffer,
       xAxisLines,
       zAxisLines,
@@ -217,7 +216,6 @@ export class WebGpu {
         this.renderPassDescriptor &&
         this.pipeline &&
         this.projectionBuffer &&
-        this.cameraBuffer &&
         this.identityBuffer
       )
     ) {
@@ -232,7 +230,6 @@ export class WebGpu {
       this.entities,
       this.projectionBuffer,
       this.projection,
-      this.cameraBuffer,
       this.camera,
       this.identityBuffer,
       this.identity
@@ -262,7 +259,6 @@ const render = (
 
   projectionBuffer: GPUBuffer,
   projection: mat4,
-  cameraBuffer: GPUBuffer,
   camera: Camera,
 
   identityBuffer: GPUBuffer,
@@ -285,7 +281,7 @@ const render = (
   device.queue.submit([commandBuffer]);
 
   device.queue.writeBuffer(projectionBuffer, 0, <ArrayBuffer>projection);
-  device.queue.writeBuffer(cameraBuffer, 0, <ArrayBuffer>camera.matrix());
+  device.queue.writeBuffer(camera.buffer, 0, <ArrayBuffer>camera.matrix());
   device.queue.writeBuffer(identityBuffer, 0, <ArrayBuffer>identityMatrix);
 };
 

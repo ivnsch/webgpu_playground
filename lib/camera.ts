@@ -1,4 +1,5 @@
 import { vec3, mat4 } from "gl-matrix";
+import { createMatrixUniformBuffer } from "./web_gpu";
 
 export class Camera {
   position: vec3;
@@ -13,7 +14,7 @@ export class Camera {
   yaw: number = 0;
   roll: number = 0;
 
-//   translation: vec3 = vec3.create();
+  buffer: GPUBuffer | null = null;
 
   constructor(position: vec3) {
     this.position = position;
