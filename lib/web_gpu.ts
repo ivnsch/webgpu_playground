@@ -311,20 +311,6 @@ const render = (
   device.queue.writeBuffer(projectionBuffer, 0, <ArrayBuffer>projection);
   device.queue.writeBuffer(cameraBuffer, 0, <ArrayBuffer>camera.matrix());
   device.queue.writeBuffer(identityBuffer, 0, <ArrayBuffer>identityMatrix);
-  device.queue.writeBuffer(
-    xAxisLines.instancesBuffer,
-    0,
-    xAxisLines.instancesMatrices.buffer,
-    xAxisLines.instancesMatrices.byteOffset,
-    xAxisLines.instancesMatrices.byteLength
-  );
-  device.queue.writeBuffer(
-    zAxisLines.instancesBuffer,
-    0,
-    zAxisLines.instancesMatrices.buffer,
-    zAxisLines.instancesMatrices.byteOffset,
-    zAxisLines.instancesMatrices.byteLength
-  );
 };
 
 const createRenderPassDescriptor = (

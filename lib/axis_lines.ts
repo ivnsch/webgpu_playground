@@ -55,5 +55,13 @@ export class AxisLines extends Entity {
     pass.setBindGroup(0, this.bindGroup);
     pass.setVertexBuffer(0, this.buffer);
     pass.draw(6, this.numInstances);
+
+    device.queue.writeBuffer(
+      this.instancesBuffer,
+      0,
+      this.instancesMatrices.buffer,
+      this.instancesMatrices.byteOffset,
+      this.instancesMatrices.byteLength
+    );
   };
 }
