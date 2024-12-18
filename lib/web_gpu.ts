@@ -7,7 +7,7 @@ import { Mesh } from "./mesh";
 import { xAxisVertices, yAxisVertices, zAxisVertices } from "./axis_mesh";
 import { CubeMesh } from "./cube_mesh";
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from "./constants";
-import { TriangleEntity } from "./drawable";
+import { TriangleEntity } from "./entity";
 
 export class WebGpu {
   adapter: GPUAdapter | null = null;
