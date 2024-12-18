@@ -26,7 +26,6 @@ export class WebGpu {
   yAxisMesh: Mesh | null = null;
   zAxisMesh: Mesh | null = null;
 
-  triangleNewBindGroup: GPUBindGroup | null = null;
   xAxisBindGroup: GPUBindGroup | null = null;
   yAxisBindGroup: GPUBindGroup | null = null;
   zAxisBindGroup: GPUBindGroup | null = null;
@@ -44,7 +43,6 @@ export class WebGpu {
   xAxisMeshTypeBuffer: GPUBuffer | null = null;
   yAxisMeshTypeBuffer: GPUBuffer | null = null;
   zAxisMeshTypeBuffer: GPUBuffer | null = null;
-  newTriangleMeshTypeBuffer: GPUBuffer | null = null;
   cubeMeshTypeBuffer: GPUBuffer | null = null;
 
   xAxesInstancesBuffer: GPUBuffer | null = null;
@@ -111,6 +109,10 @@ export class WebGpu {
     this.adapter = adapter;
     this.device = device;
 
+    const triangle = new TriangleEntity(this.device);
+    this.triangle = triangle;
+    this.cubeMesh = new CubeMesh(this.device);
+
     this.context.configure({
       device: device,
       format: this.presentationFormat,
@@ -130,9 +132,9 @@ export class WebGpu {
     this.zAxisMeshTypeBuffer = createMeshTypeUniformBuffer(device);
     new Uint32Array(this.zAxisMeshTypeBuffer.getMappedRange()).set([2]);
     this.zAxisMeshTypeBuffer.unmap();
-    this.newTriangleMeshTypeBuffer = createMeshTypeUniformBuffer(device);
-    new Uint32Array(this.newTriangleMeshTypeBuffer.getMappedRange()).set([4]);
-    this.newTriangleMeshTypeBuffer.unmap();
+    triangle.meshTypeBuffer = createMeshTypeUniformBuffer(device);
+    new Uint32Array(triangle.meshTypeBuffer.getMappedRange()).set([4]);
+    triangle.meshTypeBuffer.unmap();
     this.cubeMeshTypeBuffer = createMeshTypeUniformBuffer(device);
     new Uint32Array(this.cubeMeshTypeBuffer.getMappedRange()).set([5]);
     this.cubeMeshTypeBuffer.unmap();
@@ -158,15 +160,13 @@ export class WebGpu {
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
-    this.triangle = new TriangleEntity(this.device);
-    this.cubeMesh = new CubeMesh(this.device);
     this.xAxisMesh = new Mesh("x axis mesh", this.device, xAxisVertices());
     this.yAxisMesh = new Mesh("y axis mesh", this.device, yAxisVertices());
     this.zAxisMesh = new Mesh("z axis mesh", this.device, zAxisVertices());
 
     const bindGroupLayout = createBindGroupLayout(this.device);
 
-    this.triangleNewBindGroup = createBindGroup(
+    triangle.bindGroup = createBindGroup(
       "triangle (new) bind group",
       this.device,
       bindGroupLayout,
@@ -174,12 +174,11 @@ export class WebGpu {
       this.cubeRotBuffer,
       this.projectionBuffer,
       this.cameraBuffer,
-      this.newTriangleMeshTypeBuffer,
+      triangle.meshTypeBuffer,
       this.xAxesInstancesBuffer,
       this.zAxesInstancesBuffer,
       this.identityBuffer
     );
-    this.triangle.bindGroup = this.triangleNewBindGroup;
 
     this.cubeBindGroup = createBindGroup(
       "cube bind group",
